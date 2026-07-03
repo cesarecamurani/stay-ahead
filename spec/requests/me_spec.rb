@@ -21,11 +21,11 @@ RSpec.describe "Api::V1::Me", type: :request do
       end
 
       it "returns user monthly income" do
-        expect(json_response[:user][:monthly_income]).to eq("#{monthly_income}")
+        expect(json_response[:user][:monthly_income]).to eq("5000.00")
       end
 
       it "returns user savings" do
-        expect(json_response[:user][:savings]).to eq("#{savings}")
+        expect(json_response[:user][:savings]).to eq("10000.00")
       end
 
       it "returns success status" do
@@ -80,11 +80,11 @@ RSpec.describe "Api::V1::Me", type: :request do
       end
 
       it "returns updated user monthly_income" do
-        expect(json_response[:user][:monthly_income]).to eq("#{monthly_income}")
+        expect(json_response[:user][:monthly_income]).to eq("6000.00")
       end
 
       it "returns updated user savings" do
-        expect(json_response[:user][:savings]).to eq("#{savings}")
+        expect(json_response[:user][:savings]).to eq("15000.00")
       end
 
       it "returns updated user currency" do

@@ -12,16 +12,12 @@ module Api
         end
 
         if user.authenticate(params[:password])
-          token = JwtService.encode(user_id: user.id)
-
-          render json: {
+          present_user(
+            user,
+            compact: true,
             message: "logged_in",
-            token: token,
-            user: {
-              id: user.id,
-              email: user.email
-            }
-          }, status: :ok
+            token: JwtService.encode(user_id: user.id)
+          )
         else
           render json: { error: "invalid_credentials" }, status: :unauthorized
         end

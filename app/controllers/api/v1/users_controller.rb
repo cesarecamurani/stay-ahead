@@ -9,13 +9,12 @@ module Api
         user = User.new(user_params)
 
         if user.save
-          token = JwtService.encode(user_id: user.id)
-
-          render json: {
+          present_user(
+            user,
+            status: :created,
             message: "registered",
-            token: token,
-            user: user_json(user)
-          }, status: :created
+            token: JwtService.encode(user_id: user.id)
+          )
         else
           render json: { errors: user.errors.full_messages },
                  status: :unprocessable_entity
@@ -24,7 +23,7 @@ module Api
 
       def update
         if current_user.update(profile_params)
-          render json: { user: user_json(current_user) }, status: :ok
+          present_user(current_user)
         else
           render json: { errors: current_user.errors.full_messages },
                  status: :unprocessable_entity
@@ -32,7 +31,7 @@ module Api
       end
 
       def me
-        render json: { user: user_json(current_user) }, status: :ok
+        present_user(current_user)
       end
 
       private
@@ -54,16 +53,6 @@ module Api
           :savings,
           :currency
         )
-      end
-
-      def user_json(user)
-        {
-          id: user.id,
-          email: user.email,
-          monthly_income: user.monthly_income,
-          savings: user.savings,
-          currency: user.currency
-        }
       end
     end
   end

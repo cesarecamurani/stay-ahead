@@ -1,0 +1,21 @@
+# frozen_string_literal: true
+
+class CommitmentSerializer < BaseSerializer
+  def self.serialize_collection(commitments)
+    commitments.map { |commitment| new(commitment).serialize }
+  end
+
+  def serialize
+    {
+      id: object.id,
+      name: object.name,
+      category: object.category,
+      recurrence: object.recurrence,
+      status: object.status,
+      amount: money(object.amount),
+      start_date: object.start_date,
+      duration_months: object.duration_months,
+      interest_rate: decimal(object.interest_rate)
+    }
+  end
+end

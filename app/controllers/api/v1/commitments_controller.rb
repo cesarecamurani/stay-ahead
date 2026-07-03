@@ -7,11 +7,11 @@ module Api
       before_action :set_commitment, only: %i[show update]
 
       def index
-        render json: current_user.commitments
+        present_collection(current_user.commitments, serializer: CommitmentSerializer)
       end
 
       def show
-        render json: commitment
+        present_json(commitment, serializer: CommitmentSerializer)
       end
 
       def create
@@ -20,7 +20,7 @@ module Api
         )
 
         if commitment.save
-          render json: commitment, status: :created
+          present_json(commitment, serializer: CommitmentSerializer, status: :created)
         else
           render json: { errors: commitment.errors.full_messages },
                  status: :unprocessable_entity
@@ -29,7 +29,7 @@ module Api
 
       def update
         if commitment.update(commitment_params)
-          render json: commitment, status: :ok
+          present_json(commitment, serializer: CommitmentSerializer)
         else
           render json: { errors: commitment.errors.full_messages },
                  status: :unprocessable_entity

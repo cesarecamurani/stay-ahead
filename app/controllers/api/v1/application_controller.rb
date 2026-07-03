@@ -20,8 +20,18 @@ module Api
         render json: { error: "unauthorized" }, status: :unauthorized
       end
 
-      def present_json(object, serializer:)
-        render json: serializer.new(object).serialize, status: :ok
+      def present_json(object, serializer:, status: :ok)
+        render json: serializer.new(object).serialize, status:
+      end
+
+      def present_collection(collection, serializer:, status: :ok)
+        render json: serializer.serialize_collection(collection), status:
+      end
+
+      def present_user(user, status: :ok, compact: false, **additional_fields)
+        render json: {
+          user: UserSerializer.new(user, compact: compact).serialize, **additional_fields
+        }, status:
       end
     end
   end

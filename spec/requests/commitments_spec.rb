@@ -138,6 +138,11 @@ RSpec.describe "Api::V1::Commitments", type: :request do
         send_request
         expect(json_response[:status]).to eq("active")
       end
+
+      it "formats amount as money" do
+        send_request
+        expect(json_response[:amount]).to eq("300.25")
+      end
     end
 
     context "when authenticated with invalid params" do

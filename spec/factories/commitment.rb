@@ -6,10 +6,25 @@ FactoryBot.define do
     name { "Netflix Subscription" }
     category { :obligation }
     recurrence { :monthly }
-    status { :active }
     amount { 15.0 }
     start_date { Date.today - 7.days }
     interest_rate { 0.0 }
     duration_months { 12 }
+
+    trait :scheduled do
+      start_date { Date.current + 1.month }
+    end
+
+    trait :paused do
+      after(:create, &:pause!)
+    end
+
+    trait :completed do
+      after(:create) { |commitment| commitment.update_column(:status, Commitment.statuses[:completed]) }
+    end
+
+    trait :cancelled do
+      after(:create, &:cancel!)
+    end
   end
 end

@@ -107,8 +107,7 @@ RSpec.describe "Api::V1::Commitments", type: :request do
         start_date: Date.current,
         duration_months: 24,
         interest_rate: 4.5,
-        recurrence: "monthly",
-        status: "inactive"
+        recurrence: "monthly"
       }
     end
 
@@ -134,7 +133,7 @@ RSpec.describe "Api::V1::Commitments", type: :request do
         expect(Commitment.order(:created_at).last.user_id).to eq(user.id)
       end
 
-      it "forces active status on create" do
+      it "sets active status when start_date is today" do
         send_request
         expect(json_response[:status]).to eq("active")
       end
@@ -142,6 +141,68 @@ RSpec.describe "Api::V1::Commitments", type: :request do
       it "formats amount as money" do
         send_request
         expect(json_response[:amount]).to eq("300.25")
+      end
+    end
+
+    context "when start_date is in the future" do
+      let(:valid_params) { super().merge(start_date: Date.current + 1.month) }
+
+      before { post "/api/v1/commitments", params: { commitment: valid_params }, headers: auth_headers }
+
+      it "sets scheduled status" do
+        expect(json_response[:status]).to eq("scheduled")
+      end
+    end
+
+    context "when status is sent in params" do
+      before do
+        post "/api/v1/commitments",
+             params: { commitment: valid_params.merge(status: "paused") },
+             headers: auth_headers
+      end
+
+      it "ignores client status and sets active from start_date" do
+        expect(json_response[:status]).to eq("active")
+      end
+    end
+
+    context "when category is invalid" do
+      before do
+        post "/api/v1/commitments",
+             params: { commitment: valid_params.merge(category: "aaa") },
+             headers: auth_headers
+      end
+
+      it "does not create a commitment" do
+        expect(Commitment.count).to eq(0)
+      end
+
+      it "returns unprocessable_entity status" do
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it "returns validation errors" do
+        expect(json_response[:errors]).to include("Category is not included in the list")
+      end
+    end
+
+    context "when recurrence is invalid" do
+      before do
+        post "/api/v1/commitments",
+             params: { commitment: valid_params.merge(recurrence: "aaa") },
+             headers: auth_headers
+      end
+
+      it "does not create a commitment" do
+        expect(Commitment.count).to eq(0)
+      end
+
+      it "returns unprocessable_entity status" do
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it "returns validation errors" do
+        expect(json_response[:errors]).to include("Recurrence is not included in the list")
       end
     end
 
@@ -200,7 +261,7 @@ RSpec.describe "Api::V1::Commitments", type: :request do
     let!(:commitment) { create(:commitment, user:, name: "Old Name", amount: 500) }
 
     context "when authenticated with valid params" do
-      let(:update_params) { { name: "New Name", amount: 450, status: "inactive" } }
+      let(:update_params) { { name: "New Name", amount: 450 } }
 
       before do
         patch "/api/v1/commitments/#{commitment.id}",
@@ -216,12 +277,40 @@ RSpec.describe "Api::V1::Commitments", type: :request do
         expect(commitment.reload.name).to eq("New Name")
       end
 
-      it "deactivates the commitment" do
-        expect(commitment.reload).to be_inactive
-      end
-
       it "returns updated commitment name" do
         expect(json_response[:name]).to eq("New Name")
+      end
+    end
+
+    context "when status is sent in params" do
+      before do
+        patch "/api/v1/commitments/#{commitment.id}",
+              params: { commitment: { status: "paused" } },
+              headers: auth_headers
+      end
+
+      it "does not change status" do
+        expect(commitment.reload).to be_active
+      end
+    end
+
+    context "when category is invalid" do
+      before do
+        patch "/api/v1/commitments/#{commitment.id}",
+              params: { commitment: { category: "aaa" } },
+              headers: auth_headers
+      end
+
+      it "returns unprocessable_entity status" do
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it "returns validation errors" do
+        expect(json_response[:errors]).to include("Category is not included in the list")
+      end
+
+      it "does not change category" do
+        expect(commitment.reload.category).to eq("obligation")
       end
     end
 
@@ -272,6 +361,142 @@ RSpec.describe "Api::V1::Commitments", type: :request do
 
       it "returns unauthorized error" do
         expect(json_response[:error]).to eq("unauthorized")
+      end
+    end
+  end
+
+  describe "POST /api/v1/commitments/:id/pause" do
+    let!(:commitment) { create(:commitment, user:) }
+
+    context "when authenticated" do
+      before { post "/api/v1/commitments/#{commitment.id}/pause", headers: auth_headers }
+
+      it "returns ok status" do
+        expect(response).to have_http_status(:ok)
+      end
+
+      it "pauses the commitment" do
+        expect(commitment.reload).to be_paused
+      end
+
+      it "returns paused status" do
+        expect(json_response[:status]).to eq("paused")
+      end
+    end
+
+    context "when commitment is not active" do
+      let!(:commitment) { create(:commitment, :scheduled, user:) }
+
+      before { post "/api/v1/commitments/#{commitment.id}/pause", headers: auth_headers }
+
+      it "returns unprocessable_entity status" do
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it "does not change status" do
+        expect(commitment.reload).to be_scheduled
+      end
+
+      it "returns transition errors" do
+        expect(json_response[:errors]).to be_present
+      end
+    end
+
+    context "when commitment belongs to another user" do
+      let(:other_commitment) { create(:commitment) }
+
+      before { post "/api/v1/commitments/#{other_commitment.id}/pause", headers: auth_headers }
+
+      it "returns not found status" do
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    context "when not authenticated" do
+      before { post "/api/v1/commitments/#{commitment.id}/pause" }
+
+      it "returns unauthorized status" do
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+  end
+
+  describe "POST /api/v1/commitments/:id/cancel" do
+    let!(:commitment) { create(:commitment, user:) }
+
+    context "when authenticated" do
+      before { post "/api/v1/commitments/#{commitment.id}/cancel", headers: auth_headers }
+
+      it "returns ok status" do
+        expect(response).to have_http_status(:ok)
+      end
+
+      it "cancels the commitment" do
+        expect(commitment.reload).to be_cancelled
+      end
+
+      it "returns cancelled status" do
+        expect(json_response[:status]).to eq("cancelled")
+      end
+    end
+
+    context "when commitment is already cancelled" do
+      let!(:commitment) { create(:commitment, :cancelled, user:) }
+
+      before { post "/api/v1/commitments/#{commitment.id}/cancel", headers: auth_headers }
+
+      it "returns unprocessable_entity status" do
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+    end
+
+    context "when not authenticated" do
+      before { post "/api/v1/commitments/#{commitment.id}/cancel" }
+
+      it "returns unauthorized status" do
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+  end
+
+  describe "POST /api/v1/commitments/:id/resume" do
+    let!(:commitment) { create(:commitment, :paused, user:) }
+
+    context "when authenticated" do
+      before { post "/api/v1/commitments/#{commitment.id}/resume", headers: auth_headers }
+
+      it "returns ok status" do
+        expect(response).to have_http_status(:ok)
+      end
+
+      it "resumes the commitment" do
+        expect(commitment.reload).to be_active
+      end
+
+      it "returns active status" do
+        expect(json_response[:status]).to eq("active")
+      end
+    end
+
+    context "when commitment is not paused" do
+      let!(:commitment) { create(:commitment, user:) }
+
+      before { post "/api/v1/commitments/#{commitment.id}/resume", headers: auth_headers }
+
+      it "returns unprocessable_entity status" do
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it "does not change status" do
+        expect(commitment.reload).to be_active
+      end
+    end
+
+    context "when not authenticated" do
+      before { post "/api/v1/commitments/#{commitment.id}/resume" }
+
+      it "returns unauthorized status" do
+        expect(response).to have_http_status(:unauthorized)
       end
     end
   end

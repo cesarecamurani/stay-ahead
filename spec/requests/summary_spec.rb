@@ -47,6 +47,16 @@ RSpec.describe "Api::V1::Summary", type: :request do
       end
     end
 
+    context "when the only commitment is paused" do
+      let!(:commitment) { create(:commitment, :paused, user:, amount: commitment_amount, recurrence: :monthly) }
+
+      before { get "/api/v1/summary", headers: auth_headers }
+
+      it "excludes paused commitments from totals" do
+        expect(json_response[:summary][:monthly_commitments_amount]).to eq("0.00")
+      end
+    end
+
     context "when user is not authenticated" do
       before { get "/api/v1/summary", headers: {} }
 

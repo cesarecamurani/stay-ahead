@@ -47,19 +47,70 @@ RSpec.describe Calculator::Breakdown do
       end
     end
 
-    context "when a commitment is inactive" do
+    context "when a commitment is paused" do
       before do
         create(
           :commitment,
+          :paused,
           user:,
           category: :debt,
           recurrence: :monthly,
-          amount: 500,
-          status: :inactive
+          amount: 500
         )
       end
 
-      it "does not include inactive commitments" do
+      it "does not include paused commitments" do
+        expect(breakdown.call["debt"]).to eq(BigDecimal("0"))
+      end
+    end
+
+    context "when a commitment is scheduled" do
+      before do
+        create(
+          :commitment,
+          :scheduled,
+          user:,
+          category: :debt,
+          recurrence: :monthly,
+          amount: 500
+        )
+      end
+
+      it "does not include scheduled commitments" do
+        expect(breakdown.call["debt"]).to eq(BigDecimal("0"))
+      end
+    end
+
+    context "when a commitment is completed" do
+      before do
+        create(
+          :commitment,
+          :completed,
+          user:,
+          category: :investment,
+          recurrence: :monthly,
+          amount: 200
+        )
+      end
+
+      it "does not include completed commitments" do
+        expect(breakdown.call["investment"]).to eq(BigDecimal("0"))
+      end
+    end
+
+    context "when a commitment is cancelled" do
+      before do
+        create(
+          :commitment,
+          :cancelled,
+          user:,
+          category: :debt,
+          recurrence: :monthly,
+          amount: 500
+        )
+      end
+
+      it "does not include cancelled commitments" do
         expect(breakdown.call["debt"]).to eq(BigDecimal("0"))
       end
     end

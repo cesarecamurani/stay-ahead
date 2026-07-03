@@ -23,7 +23,7 @@ module Calculator
     end
 
     def active_commitments
-      user.commitments.select(&:currently_active?)
+      user.commitments.active
     end
   end
 end

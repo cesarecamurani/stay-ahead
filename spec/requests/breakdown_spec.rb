@@ -66,6 +66,30 @@ RSpec.describe "Api::V1::Breakdown", type: :request do
       end
     end
 
+    context "when commitments are not active" do
+      let!(:obligation_commitments) { [] }
+      let!(:debt_commitment) { create(:commitment, :paused, user:, amount: 100, category: :debt) }
+      let!(:service_commitment) { [] }
+      let!(:investment_commitment) { nil }
+
+      let(:breakdown_data) do
+        {
+          breakdown: {
+            obligation: "0.00",
+            debt: "0.00",
+            service: "0.00",
+            investment: "0.00"
+          }
+        }
+      end
+
+      before { get "/api/v1/breakdown", headers: auth_headers }
+
+      it "excludes non-active commitments from totals" do
+        expect(json_response).to eq(breakdown_data)
+      end
+    end
+
     context "when user is not authenticated" do
       before { get "/api/v1/breakdown", headers: {} }
 

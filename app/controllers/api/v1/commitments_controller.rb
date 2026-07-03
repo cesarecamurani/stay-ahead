@@ -4,7 +4,7 @@ module Api
   module V1
     class CommitmentsController < ApplicationController
       before_action :authenticate_user!
-      before_action :set_commitment, only: %i[show update]
+      before_action :set_commitment, only: %i[show update pause cancel resume]
 
       def index
         present_collection(current_user.commitments, serializer: CommitmentSerializer)
@@ -15,9 +15,7 @@ module Api
       end
 
       def create
-        commitment = current_user.commitments.build(
-          commitment_params.merge(status: :active)
-        )
+        commitment = current_user.commitments.build(commitment_params)
 
         if commitment.save
           present_json(commitment, serializer: CommitmentSerializer, status: :created)
@@ -29,6 +27,33 @@ module Api
 
       def update
         if commitment.update(commitment_params)
+          present_json(commitment, serializer: CommitmentSerializer)
+        else
+          render json: { errors: commitment.errors.full_messages },
+                 status: :unprocessable_entity
+        end
+      end
+
+      def pause
+        if commitment.pause!
+          present_json(commitment, serializer: CommitmentSerializer)
+        else
+          render json: { errors: commitment.errors.full_messages },
+                 status: :unprocessable_entity
+        end
+      end
+
+      def cancel
+        if commitment.cancel!
+          present_json(commitment, serializer: CommitmentSerializer)
+        else
+          render json: { errors: commitment.errors.full_messages },
+                 status: :unprocessable_entity
+        end
+      end
+
+      def resume
+        if commitment.resume!
           present_json(commitment, serializer: CommitmentSerializer)
         else
           render json: { errors: commitment.errors.full_messages },
@@ -51,7 +76,6 @@ module Api
           :name,
           :category,
           :recurrence,
-          :status,
           :amount,
           :start_date,
           :duration_months,

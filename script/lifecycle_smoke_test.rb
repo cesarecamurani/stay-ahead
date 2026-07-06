@@ -5,15 +5,13 @@ require "json"
 require "uri"
 require "bigdecimal"
 
-USER_ID = "b3aa6236-86f8-48a9-84c1-2ce428cfc14f"
-BASE = "http://localhost:9000/api/v1"
-
+USER_ID = ENV.fetch("SMOKE_TEST_USER_ID", "b3aa6236-86f8-48a9-84c1-2ce428cfc14f")
+BASE = ENV.fetch("SMOKE_TEST_BASE_URL", "http://localhost:9000/api/v1")
 class SmokeTest
   def initialize
     @user = User.find(USER_ID)
     @token = JwtService.encode(user_id: @user.id)
     @results = []
-    @commitments = {}
   end
 
   def run
@@ -48,17 +46,22 @@ class SmokeTest
     puts line
   end
 
-  def headers
-    { "Authorization" => "Bearer #{@token}", "Content-Type" => "application/json" }
+  def headers(token = @token)
+    { "Authorization" => "Bearer #{token}", "Content-Type" => "application/json" }
   end
 
   def request(method, path, body: nil, token: @token)
     uri = URI("#{BASE}#{path}")
     http = Net::HTTP.new(uri.host, uri.port)
-    klass = { get: Net::HTTP::Get, post: Net::HTTP::Post, patch: Net::HTTP::Patch }[method]
-    req = klass.new(uri)
-    req["Authorization"] = "Bearer #{token}"
-    req["Content-Type"] = "application/json"
+    http.use_ssl = (uri.scheme == "https")
+    http.open_timeout = 5
+    http.read_timeout = 30
+
+    klass = { get: Net::HTTP::Get, post: Net::HTTP::Post, patch: Net::HTTP::Patch }.fetch(method) do
+      raise ArgumentError, "Unsupported HTTP method: #{method.inspect}"
+    end
+
+    req = klass.new(uri, headers(token))
     req.body = body.to_json if body
     http.request(req)
   end
@@ -80,8 +83,6 @@ class SmokeTest
     }
     res = request(:post, "/commitments", body: { commitment: body })
     data = json(res)
-    id = data[:id]
-    @commitments[id] = data if id
     [res, data]
   end
 
@@ -126,8 +127,8 @@ class SmokeTest
     record("invalid recurrence → 422", res.code == "422", "code=#{res.code}")
 
     create_commitment
-    res2, _ = request(:post, "/commitments", body: { commitment: base_params.merge(status: "paused") })
-    _, data2 = [res2, json(res2)]
+    res2 = request(:post, "/commitments", body: { commitment: base_params.merge(status: "paused") })
+    data2 = json(res2)
     record("invalid status param ignored → active", data2[:status] == "active", "status=#{data2[:status]}")
 
     res = request(:post, "/commitments", body: { commitment: { name: nil, category: "debt", amount: 100, start_date: Date.current, recurrence: "monthly" } })

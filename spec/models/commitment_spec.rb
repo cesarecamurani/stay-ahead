@@ -99,6 +99,24 @@ RSpec.describe Commitment, type: :model do
       expect(commitment).to be_paused
     end
 
+    context "with a new commitment" do
+      let(:commitment) { Commitment.new }
+
+      it "returns false without persisting" do
+        expect(commitment).not_to be_persisted
+
+        expect(commitment.pause!).to be false
+
+        expect(commitment).not_to be_persisted
+      end
+
+      it "adds an error" do
+        commitment.pause!
+
+        expect(commitment.errors[:status]).to eq(["cannot transition a new commitment"])
+      end
+    end
+
     context "when not active" do
       let(:commitment) { create(:commitment, :scheduled) }
 
@@ -111,6 +129,24 @@ RSpec.describe Commitment, type: :model do
   end
 
   describe "#cancel!" do
+    context "with a new commitment" do
+      let(:commitment) { Commitment.new }
+
+      it "returns false without persisting" do
+        expect(commitment).not_to be_persisted
+
+        expect(commitment.cancel!).to be false
+
+        expect(commitment).not_to be_persisted
+      end
+
+      it "adds an error" do
+        commitment.cancel!
+
+        expect(commitment.errors[:status]).to eq(["cannot transition a new commitment"])
+      end
+    end
+
     %i[scheduled active paused].each do |from_status|
       context "when #{from_status}" do
         let(:commitment) do
@@ -155,6 +191,24 @@ RSpec.describe Commitment, type: :model do
     it "transitions to active" do
       expect(commitment.resume!).to be true
       expect(commitment).to be_active
+    end
+
+    context "with a new commitment" do
+      let(:commitment) { Commitment.new }
+
+      it "returns false without persisting" do
+        expect(commitment).not_to be_persisted
+
+        expect(commitment.resume!).to be false
+
+        expect(commitment).not_to be_persisted
+      end
+
+      it "adds an error" do
+        commitment.resume!
+
+        expect(commitment.errors[:status]).to eq(["cannot transition a new commitment"])
+      end
     end
 
     context "when not paused" do

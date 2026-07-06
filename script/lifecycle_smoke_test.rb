@@ -4,9 +4,14 @@ require "net/http"
 require "json"
 require "uri"
 require "bigdecimal"
+require "securerandom"
+require "date"
+
+require_relative "../config/environment" unless defined?(Rails)
 
 USER_ID = ENV.fetch("SMOKE_TEST_USER_ID", "b3aa6236-86f8-48a9-84c1-2ce428cfc14f")
 BASE = ENV.fetch("SMOKE_TEST_BASE_URL", "http://localhost:9000/api/v1")
+
 class SmokeTest
   def initialize
     @user = User.find(USER_ID)

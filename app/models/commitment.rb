@@ -36,6 +36,7 @@ class Commitment < ApplicationRecord
   validates :duration_months, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
   validates :amount, presence: true, numericality: { greater_than: 0 }
   validates :start_date, presence: true
+  validates :end_date, comparison: { greater_than: :start_date }, allow_nil: true, if: -> { start_date.present? }
 
   def set_initial_status
     return if start_date.blank?

@@ -19,6 +19,7 @@ group :development, :test do
   gem "rspec-rails"
   gem "rubocop-rails-omakase", require: false
   gem "shoulda-matchers"
+  gem "solid_queue", "~> 1.4"
   gem "webmock"
 end
 

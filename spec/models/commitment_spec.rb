@@ -21,7 +21,7 @@ RSpec.describe Commitment, type: :model do
     it { is_expected.to validate_presence_of(:category) }
     it { is_expected.to validate_presence_of(:recurrence) }
     it { is_expected.to validate_numericality_of(:amount).is_greater_than(0) }
-it { is_expected.to validate_comparison_of(:end_date).is_greater_than(:start_date).allow_nil }
+    it { is_expected.to validate_comparison_of(:end_date).is_greater_than(:start_date).allow_nil }
     it { is_expected.to validate_numericality_of(:interest_rate).is_greater_than_or_equal_to(0) }
     it { is_expected.to validate_numericality_of(:duration_months).is_greater_than(0).only_integer }
 
@@ -60,6 +60,42 @@ it { is_expected.to validate_comparison_of(:end_date).is_greater_than(:start_dat
         commitment.save!
 
         expect(commitment).to be_scheduled
+      end
+    end
+  end
+
+  describe "end_date on create" do
+    subject(:commitment) { build(:commitment, start_date:, duration_months:, end_date:) }
+
+    let(:start_date) { Date.new(2026, 1, 15) }
+    let(:duration_months) { 12 }
+    let(:end_date) { nil }
+
+    context "with a fixed duration" do
+      it "calculates end_date from start_date and duration_months" do
+        commitment.save!
+
+        expect(commitment.end_date).to eq(start_date + 12.months)
+      end
+    end
+
+    context "without duration_months" do
+      let(:duration_months) { nil }
+
+      it "keeps end_date nil" do
+        commitment.save!
+
+        expect(commitment.end_date).to be_nil
+      end
+    end
+
+    context "with an explicit end_date" do
+      let(:end_date) { start_date + 6.months }
+
+      it "preserves the provided end_date" do
+        commitment.save!
+
+        expect(commitment.end_date).to eq(start_date + 6.months)
       end
     end
   end
@@ -182,6 +218,129 @@ it { is_expected.to validate_comparison_of(:end_date).is_greater_than(:start_dat
         expect(commitment.cancel!).to be false
         expect(commitment.errors[:status]).to be_present
         expect(commitment).to be_cancelled
+      end
+    end
+  end
+
+  describe ".ready_to_activate" do
+    let!(:eligible) do
+      create(:commitment, :scheduled).tap do |commitment|
+        commitment.update_columns(start_date: Date.current - 1.day, status: Commitment.statuses[:scheduled])
+      end
+    end
+    let!(:future_start) { create(:commitment, :scheduled) }
+    let!(:active_commitment) { create(:commitment) }
+
+    it "includes scheduled commitments with start_date on or before today" do
+      expect(described_class.ready_to_activate).to include(eligible)
+    end
+
+    it "excludes scheduled commitments with a future start_date" do
+      expect(described_class.ready_to_activate).not_to include(future_start)
+    end
+
+    it "excludes non-scheduled commitments" do
+      expect(described_class.ready_to_activate).not_to include(active_commitment)
+    end
+  end
+
+  describe ".ready_to_complete" do
+    let!(:eligible) do
+      create(:commitment, end_date: Date.current - 1.day)
+    end
+    let!(:no_end_date) { create(:commitment, duration_months: nil) }
+    let!(:future_end) do
+      create(:commitment, end_date: Date.current + 1.month)
+    end
+    let!(:scheduled_commitment) { create(:commitment, :scheduled) }
+
+    it "includes active commitments with end_date on or before today" do
+      expect(described_class.ready_to_complete).to include(eligible)
+    end
+
+    it "excludes active commitments without an end_date" do
+      expect(described_class.ready_to_complete).not_to include(no_end_date)
+    end
+
+    it "excludes active commitments with a future end_date" do
+      expect(described_class.ready_to_complete).not_to include(future_end)
+    end
+
+    it "excludes non-active commitments" do
+      expect(described_class.ready_to_complete).not_to include(scheduled_commitment)
+    end
+  end
+
+  describe "#activate!" do
+    let(:commitment) do
+      create(:commitment, :scheduled).tap do |record|
+        record.update_columns(start_date: Date.current - 1.day, status: Commitment.statuses[:scheduled])
+        record.reload
+      end
+    end
+
+    it "transitions to active" do
+      expect(commitment.activate!).to be true
+      expect(commitment).to be_active
+    end
+
+    context "when already active" do
+      let(:commitment) { create(:commitment) }
+
+      it "returns false and adds an error" do
+        expect(commitment.activate!).to be false
+        expect(commitment.errors[:status]).to be_present
+        expect(commitment).to be_active
+      end
+    end
+
+    context "when start_date is in the future" do
+      let(:commitment) { create(:commitment, :scheduled) }
+
+      it "returns false without transitioning" do
+        expect(commitment.activate!).to be false
+        expect(commitment).to be_scheduled
+      end
+    end
+  end
+
+  describe "#complete!" do
+    let(:commitment) do
+      create(:commitment, end_date: Date.current - 1.day)
+    end
+
+    it "transitions to completed" do
+      expect(commitment.complete!).to be true
+      expect(commitment).to be_completed
+    end
+
+    context "when end_date is missing" do
+      let(:commitment) { create(:commitment, duration_months: nil) }
+
+      it "returns false without transitioning" do
+        expect(commitment.complete!).to be false
+        expect(commitment).to be_active
+      end
+    end
+
+    context "when end_date is in the future" do
+      let(:commitment) do
+        create(:commitment, end_date: Date.current + 1.month)
+      end
+
+      it "returns false without transitioning" do
+        expect(commitment.complete!).to be false
+        expect(commitment).to be_active
+      end
+    end
+
+    context "when already completed" do
+      let(:commitment) { create(:commitment, :completed) }
+
+      it "returns false and adds an error" do
+        expect(commitment.complete!).to be false
+        expect(commitment.errors[:status]).to be_present
+        expect(commitment).to be_completed
       end
     end
   end

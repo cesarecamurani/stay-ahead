@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe CompleteActiveCommitmentsJob, type: :job do
+RSpec.describe CompleteCommitmentsJob, type: :job do
   include ActiveJob::TestHelper
 
   describe "retry configuration" do

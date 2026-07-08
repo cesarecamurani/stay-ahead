@@ -29,12 +29,21 @@ class Commitment < ApplicationRecord
   before_validation :set_initial_status, on: :create
   before_validation :calculate_end_date, on: :create
 
-  scope :ready_to_activate, -> { scheduled.where(start_date: ..Date.current) }
-  scope :ready_to_complete, -> do
-    active
+  scope :ready_to_activate, -> {
+    scheduled
+      .where.not(recurrence: :one_time)
+      .where(start_date: ..Date.current)
+  }
+
+  scope :ready_to_complete, lambda {
+    one_time = scheduled.where(recurrence: :one_time).where(due_date: ..Date.current)
+    recurring = active
+      .where.not(recurrence: :one_time)
       .where.not(end_date: nil)
       .where(end_date: ..Date.current)
-  end
+
+    one_time.or(recurring)
+  }
 
   validates :name, presence: true
   validates :category, presence: true
@@ -43,20 +52,14 @@ class Commitment < ApplicationRecord
   validates :interest_rate, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :duration_months, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
   validates :amount, presence: true, numericality: { greater_than: 0 }
-  validates :start_date, presence: true
+
+  validates :start_date, presence: true, unless: :one_time?
+  validates :start_date, absence: true, if: :one_time?
+
+  validates :due_date, presence: true, if: :one_time?
+  validates :due_date, absence: true, unless: :one_time?
+
   validates :end_date, comparison: { greater_than: :start_date }, allow_nil: true, if: -> { start_date.present? }
-
-  def set_initial_status
-    return if start_date.blank?
-
-    self.status = start_date <= Date.current ? :active : :scheduled
-  end
-
-  def calculate_end_date
-    return if duration_months.blank? || start_date.blank?
-
-    self.end_date ||= start_date + duration_months.months
-  end
 
   def pause!
     transition_to!(:paused, from: %i[active])
@@ -71,6 +74,11 @@ class Commitment < ApplicationRecord
   end
 
   def activate!
+    if one_time?
+      errors.add(:recurrence, "cannot be activated")
+      return false
+    end
+
     if start_date.blank?
       errors.add(:start_date, "cannot be blank")
       return false
@@ -85,20 +93,50 @@ class Commitment < ApplicationRecord
   end
 
   def complete!
-    if end_date.blank?
-      errors.add(:end_date, "cannot be blank")
+    date_attribute = one_time? ? :due_date : :end_date
+    allowed_states = one_time? ? %i[scheduled] : %i[active]
+
+    if completion_date.blank?
+      errors.add(date_attribute, "cannot be blank")
       return false
     end
 
-    if end_date > Date.current
-      errors.add(:end_date, "cannot be in the future")
+    if completion_date > Date.current
+      errors.add(date_attribute, "cannot be in the future")
       return false
     end
 
-    transition_to!(:completed, from: %i[active])
+    transition_to!(:completed, from: allowed_states)
   end
 
   private
+
+  def set_initial_status
+    return if activation_date.blank?
+
+    self.status =
+      if activation_date <= Date.current
+        one_time? ? :completed : :active
+      else
+        :scheduled
+      end
+  end
+
+  def calculate_end_date
+    return if one_time?
+    return if duration_months.blank?
+    return if start_date.blank?
+
+    self.end_date ||= start_date + duration_months.months
+  end
+
+  def activation_date
+    one_time? ? due_date : start_date
+  end
+
+  def completion_date
+    one_time? ? due_date : end_date
+  end
 
   def transition_to!(target_status, from:)
     unless persisted?

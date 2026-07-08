@@ -8,6 +8,7 @@ FactoryBot.define do
     recurrence { :monthly }
     amount { 15.0 }
     start_date { Date.today - 7.days }
+    due_date { nil }
     interest_rate { 0.0 }
     duration_months { 12 }
 
@@ -27,6 +28,13 @@ FactoryBot.define do
 
     trait :cancelled do
       after(:create, &:cancel!)
+    end
+
+    trait :one_time do
+      recurrence { :one_time }
+      due_date { Date.current }
+      start_date { nil }
+      duration_months { nil }
     end
   end
 end

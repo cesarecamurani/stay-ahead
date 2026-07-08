@@ -17,6 +17,11 @@ RSpec.describe ActivateScheduledCommitmentsJob, type: :job do
         commitment.update_columns(start_date: Date.current - 1.day, status: Commitment.statuses[:scheduled])
       end
     end
+    let!(:eligible_one_time) do
+      create(:commitment, :one_time, due_date: Date.current - 1.day).tap do |commitment|
+        commitment.update_columns(status: Commitment.statuses[:scheduled])
+      end
+    end
     let!(:future_start) { create(:commitment, :scheduled) }
     let!(:active_commitment) { create(:commitment) }
 
@@ -31,6 +36,7 @@ RSpec.describe ActivateScheduledCommitmentsJob, type: :job do
 
       expect(future_start.reload).to be_scheduled
       expect(active_commitment.reload).to be_active
+      expect(eligible_one_time.reload).to be_scheduled
     end
 
     it "is idempotent on re-run" do

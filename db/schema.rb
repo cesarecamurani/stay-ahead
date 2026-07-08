@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_08_070000) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_08_105000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -20,13 +20,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_08_070000) do
     t.integer "category", null: false
     t.decimal "amount", precision: 10, scale: 2, null: false
     t.decimal "interest_rate", precision: 5, scale: 2
-    t.date "start_date", null: false
+    t.date "start_date"
     t.integer "duration_months"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "status", default: 0, null: false
     t.integer "recurrence", default: 0, null: false
     t.date "end_date"
+    t.date "due_date"
     t.index ["end_date"], name: "index_commitments_on_end_date"
     t.index ["user_id"], name: "index_commitments_on_user_id"
   end

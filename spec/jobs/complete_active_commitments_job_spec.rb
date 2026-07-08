@@ -15,16 +15,27 @@ RSpec.describe CompleteActiveCommitmentsJob, type: :job do
     let!(:eligible) do
       create(:commitment, end_date: Date.current - 1.day)
     end
+    let!(:eligible_one_time) do
+      create(:commitment, :one_time, due_date: Date.current - 1.day).tap do |commitment|
+        commitment.update_columns(status: Commitment.statuses[:scheduled])
+      end
+    end
     let!(:no_end_date) { create(:commitment, duration_months: nil) }
     let!(:future_end) do
       create(:commitment, end_date: Date.current + 1.month)
     end
     let!(:scheduled_commitment) { create(:commitment, :scheduled) }
+    let!(:future_one_time) do
+      create(:commitment, :one_time, due_date: Date.current + 1.month).tap do |commitment|
+        commitment.update_columns(status: Commitment.statuses[:scheduled])
+      end
+    end
 
-    it "completes active commitments ready for completion" do
+    it "completes commitments ready for completion" do
       described_class.perform_now
 
       expect(eligible.reload).to be_completed
+      expect(eligible_one_time.reload).to be_completed
     end
 
     it "does not change commitments outside the scope" do
@@ -33,6 +44,7 @@ RSpec.describe CompleteActiveCommitmentsJob, type: :job do
       expect(no_end_date.reload).to be_active
       expect(future_end.reload).to be_active
       expect(scheduled_commitment.reload).to be_scheduled
+      expect(future_one_time.reload).to be_scheduled
     end
 
     it "is idempotent on re-run" do

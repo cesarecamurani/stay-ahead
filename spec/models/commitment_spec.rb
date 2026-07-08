@@ -38,6 +38,40 @@ RSpec.describe Commitment, type: :model do
       expect(commitment).not_to be_valid
       expect(commitment.errors[:recurrence]).to include("is not included in the list")
     end
+
+    it "rejects recurring commitments without start_date" do
+      commitment = build(:commitment, recurrence: :monthly, start_date: nil, due_date: Date.current)
+
+      expect(commitment).not_to be_valid
+      expect(commitment.errors[:start_date]).to include("can't be blank")
+    end
+
+    it "rejects recurring commitments with due_date" do
+      commitment = build(:commitment, recurrence: :monthly, due_date: Date.current, start_date: Date.current)
+
+      expect(commitment).not_to be_valid
+      expect(commitment.errors[:due_date]).to include("must be blank")
+    end
+
+    it "rejects one-time commitments without due_date" do
+      commitment = build(:commitment, recurrence: :one_time, start_date: nil, due_date: nil)
+
+      expect(commitment).not_to be_valid
+      expect(commitment.errors[:due_date]).to include("can't be blank")
+    end
+
+    it "rejects one-time commitments with start_date" do
+      commitment = build(:commitment, :one_time, start_date: Date.current)
+
+      expect(commitment).not_to be_valid
+      expect(commitment.errors[:start_date]).to include("must be blank")
+    end
+
+    it "allows one-time commitments without start_date" do
+      commitment = build(:commitment, :one_time, start_date: nil)
+
+      expect(commitment).to be_valid
+    end
   end
 
   describe "initial status on create" do
@@ -55,6 +89,30 @@ RSpec.describe Commitment, type: :model do
 
     context "when start_date is in the future" do
       let(:start_date) { Date.current + 1.month }
+
+      it "sets status to scheduled" do
+        commitment.save!
+
+        expect(commitment).to be_scheduled
+      end
+    end
+  end
+
+  describe "initial status on create for one-time commitments" do
+    subject(:commitment) { build(:commitment, :one_time, due_date:) }
+
+    context "when due_date is in the past" do
+      let(:due_date) { Date.current - 1.day }
+
+      it "sets status to completed" do
+        commitment.save!
+
+        expect(commitment).to be_completed
+      end
+    end
+
+    context "when due_date is in the future" do
+      let(:due_date) { Date.current + 1.month }
 
       it "sets status to scheduled" do
         commitment.save!
@@ -228,6 +286,7 @@ RSpec.describe Commitment, type: :model do
         commitment.update_columns(start_date: Date.current - 1.day, status: Commitment.statuses[:scheduled])
       end
     end
+
     let!(:future_start) { create(:commitment, :scheduled) }
     let!(:active_commitment) { create(:commitment) }
 
@@ -248,14 +307,28 @@ RSpec.describe Commitment, type: :model do
     let!(:eligible) do
       create(:commitment, end_date: Date.current - 1.day)
     end
+    let!(:eligible_one_time) do
+      create(:commitment, :one_time, due_date: Date.current - 1.day).tap do |commitment|
+        commitment.update_columns(status: Commitment.statuses[:scheduled])
+      end
+    end
     let!(:no_end_date) { create(:commitment, duration_months: nil) }
     let!(:future_end) do
       create(:commitment, end_date: Date.current + 1.month)
     end
     let!(:scheduled_commitment) { create(:commitment, :scheduled) }
+    let!(:future_one_time) do
+      create(:commitment, :one_time, due_date: Date.current + 1.month).tap do |commitment|
+        commitment.update_columns(status: Commitment.statuses[:scheduled])
+      end
+    end
 
-    it "includes active commitments with end_date on or before today" do
+    it "includes recurring active commitments with end_date on or before today" do
       expect(described_class.ready_to_complete).to include(eligible)
+    end
+
+    it "includes scheduled one-time commitments with due_date on or before today" do
+      expect(described_class.ready_to_complete).to include(eligible_one_time)
     end
 
     it "excludes active commitments without an end_date" do
@@ -266,8 +339,12 @@ RSpec.describe Commitment, type: :model do
       expect(described_class.ready_to_complete).not_to include(future_end)
     end
 
-    it "excludes non-active commitments" do
+    it "excludes scheduled recurring commitments" do
       expect(described_class.ready_to_complete).not_to include(scheduled_commitment)
+    end
+
+    it "excludes scheduled one-time commitments with a future due_date" do
+      expect(described_class.ready_to_complete).not_to include(future_one_time)
     end
   end
 
@@ -300,6 +377,21 @@ RSpec.describe Commitment, type: :model do
       it "returns false without transitioning" do
         expect(commitment.activate!).to be false
         expect(commitment.errors[:start_date]).to eq(["cannot be in the future"])
+        expect(commitment).to be_scheduled
+      end
+    end
+
+    context "when start_date is missing" do
+      let(:commitment) do
+        create(:commitment, :scheduled).tap do |record|
+          record.update_columns(start_date: nil, status: Commitment.statuses[:scheduled])
+          record.reload
+        end
+      end
+
+      it "returns false without transitioning" do
+        expect(commitment.activate!).to be false
+        expect(commitment.errors[:start_date]).to eq(["cannot be blank"])
         expect(commitment).to be_scheduled
       end
     end

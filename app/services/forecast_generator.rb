@@ -26,7 +26,7 @@ class ForecastGenerator
       .commitments
       .where(status: ALLOWED_STATUSES)
       .flat_map { |commitment| occurrences_for(commitment) }
-      .sort_by { |occurrence| occurrence[:date] }
+      .sort_by { |occurrence| [occurrence[:date], occurrence[:commitment_id]] }
   end
 
   private
@@ -52,16 +52,17 @@ class ForecastGenerator
     return [] if effective_to < commitment.start_date
 
     current = commitment.start_date
+    recurrence = commitment.recurrence.to_sym
 
     while current < from && current <= effective_to
-      current = next_occurrence_date(current, commitment.recurrence.to_sym)
+      current = next_occurrence_date(current, recurrence)
     end
 
     occurrences = []
 
     while current <= effective_to
       occurrences << build_occurrence(commitment, current)
-      current = next_occurrence_date(current, commitment.recurrence.to_sym)
+      current = next_occurrence_date(current, recurrence)
     end
 
     occurrences

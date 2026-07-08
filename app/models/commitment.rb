@@ -27,6 +27,14 @@ class Commitment < ApplicationRecord
   }, validate: true
 
   before_validation :set_initial_status, on: :create
+  before_validation :calculate_end_date, on: :create
+
+  scope :ready_to_activate, -> { scheduled.where(start_date: ..Date.current) }
+  scope :ready_to_complete, -> do
+    active
+      .where.not(end_date: nil)
+      .where(end_date: ..Date.current)
+  end
 
   validates :name, presence: true
   validates :category, presence: true
@@ -44,6 +52,12 @@ class Commitment < ApplicationRecord
     self.status = start_date <= Date.current ? :active : :scheduled
   end
 
+  def calculate_end_date
+    return if duration_months.blank? || start_date.blank?
+
+    self.end_date ||= start_date + duration_months.months
+  end
+
   def pause!
     transition_to!(:paused, from: %i[active])
   end
@@ -54,6 +68,34 @@ class Commitment < ApplicationRecord
 
   def resume!
     transition_to!(:active, from: %i[paused])
+  end
+
+  def activate!
+    if start_date.blank?
+      errors.add(:start_date, "cannot be blank")
+      return false
+    end
+
+    if start_date > Date.current
+      errors.add(:start_date, "cannot be in the future")
+      return false
+    end
+
+    transition_to!(:active, from: %i[scheduled])
+  end
+
+  def complete!
+    if end_date.blank?
+      errors.add(:end_date, "cannot be blank")
+      return false
+    end
+
+    if end_date > Date.current
+      errors.add(:end_date, "cannot be in the future")
+      return false
+    end
+
+    transition_to!(:completed, from: %i[active])
   end
 
   private

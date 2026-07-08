@@ -20,7 +20,9 @@ FactoryBot.define do
     end
 
     trait :completed do
-      after(:create) { |commitment| commitment.update_column(:status, Commitment.statuses[:completed]) }
+      end_date { Date.current - 1.day }
+
+      after(:create, &:complete!)
     end
 
     trait :cancelled do

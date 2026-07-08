@@ -71,13 +71,29 @@ class Commitment < ApplicationRecord
   end
 
   def activate!
-    return false if start_date.blank? || start_date > Date.current
+    if start_date.blank?
+      errors.add(:start_date, "cannot be blank")
+      return false
+    end
+
+    if start_date > Date.current
+      errors.add(:start_date, "cannot be in the future")
+      return false
+    end
 
     transition_to!(:active, from: %i[scheduled])
   end
 
   def complete!
-    return false if end_date.blank? || end_date > Date.current
+    if end_date.blank?
+      errors.add(:end_date, "cannot be blank")
+      return false
+    end
+
+    if end_date > Date.current
+      errors.add(:end_date, "cannot be in the future")
+      return false
+    end
 
     transition_to!(:completed, from: %i[active])
   end

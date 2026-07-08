@@ -299,6 +299,7 @@ RSpec.describe Commitment, type: :model do
 
       it "returns false without transitioning" do
         expect(commitment.activate!).to be false
+        expect(commitment.errors[:start_date]).to eq(["cannot be in the future"])
         expect(commitment).to be_scheduled
       end
     end
@@ -319,6 +320,7 @@ RSpec.describe Commitment, type: :model do
 
       it "returns false without transitioning" do
         expect(commitment.complete!).to be false
+        expect(commitment.errors[:end_date]).to eq(["cannot be blank"])
         expect(commitment).to be_active
       end
     end
@@ -330,6 +332,7 @@ RSpec.describe Commitment, type: :model do
 
       it "returns false without transitioning" do
         expect(commitment.complete!).to be false
+        expect(commitment.errors[:end_date]).to eq(["cannot be in the future"])
         expect(commitment).to be_active
       end
     end

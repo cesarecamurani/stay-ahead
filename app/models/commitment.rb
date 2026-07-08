@@ -37,7 +37,10 @@ class Commitment < ApplicationRecord
 
   scope :ready_to_complete, lambda {
     one_time = scheduled.where(recurrence: :one_time).where(due_date: ..Date.current)
-    recurring = active.where.not(end_date: nil).where(end_date: ..Date.current)
+    recurring = active
+      .where.not(recurrence: :one_time)
+      .where.not(end_date: nil)
+      .where(end_date: ..Date.current)
 
     one_time.or(recurring)
   }
@@ -71,6 +74,11 @@ class Commitment < ApplicationRecord
   end
 
   def activate!
+    if one_time?
+      errors.add(:recurrence, "cannot be activated")
+      return false
+    end
+
     if start_date.blank?
       errors.add(:start_date, "cannot be blank")
       return false

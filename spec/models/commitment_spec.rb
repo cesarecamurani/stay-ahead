@@ -322,6 +322,11 @@ RSpec.describe Commitment, type: :model do
         commitment.update_columns(status: Commitment.statuses[:scheduled])
       end
     end
+    let!(:corrupted_active_one_time) do
+      create(:commitment, :one_time, due_date: Date.current - 1.day).tap do |commitment|
+        commitment.update_columns(status: Commitment.statuses[:active], end_date: Date.current - 1.day)
+      end
+    end
 
     it "includes recurring active commitments with end_date on or before today" do
       expect(described_class.ready_to_complete).to include(eligible)
@@ -345,6 +350,10 @@ RSpec.describe Commitment, type: :model do
 
     it "excludes scheduled one-time commitments with a future due_date" do
       expect(described_class.ready_to_complete).not_to include(future_one_time)
+    end
+
+    it "excludes active one-time commitments (recurring branch excludes one_time)" do
+      expect(described_class.ready_to_complete).not_to include(corrupted_active_one_time)
     end
   end
 
@@ -395,6 +404,21 @@ RSpec.describe Commitment, type: :model do
         expect(commitment).to be_scheduled
       end
     end
+
+    context "when commitment is one_time" do
+      let(:commitment) do
+        create(:commitment, :one_time, due_date: Date.current + 1.month).tap do |record|
+          record.update_columns(status: Commitment.statuses[:scheduled])
+          record.reload
+        end
+      end
+
+      it "rejects activation" do
+        expect(commitment.activate!).to be false
+        expect(commitment.errors[:recurrence]).to eq(["cannot be activated"])
+        expect(commitment).to be_scheduled
+      end
+    end
   end
 
   describe "#complete!" do
@@ -436,6 +460,37 @@ RSpec.describe Commitment, type: :model do
         expect(commitment.complete!).to be false
         expect(commitment.errors[:status]).to be_present
         expect(commitment).to be_completed
+      end
+    end
+
+    context "when commitment is one_time" do
+      context "when due_date is in the past" do
+        let(:commitment) do
+          create(:commitment, :one_time, due_date: Date.current - 1.day).tap do |record|
+            record.update_columns(status: Commitment.statuses[:scheduled])
+            record.reload
+          end
+        end
+
+        it "transitions to completed" do
+          expect(commitment.complete!).to be true
+          expect(commitment).to be_completed
+        end
+      end
+
+      context "when due_date is in the future" do
+        let(:commitment) do
+          create(:commitment, :one_time, due_date: Date.current + 1.month).tap do |record|
+            record.update_columns(status: Commitment.statuses[:scheduled])
+            record.reload
+          end
+        end
+
+        it "returns false without transitioning and adds due_date error" do
+          expect(commitment.complete!).to be false
+          expect(commitment.errors[:due_date]).to eq(["cannot be in the future"])
+          expect(commitment).to be_scheduled
+        end
       end
     end
   end

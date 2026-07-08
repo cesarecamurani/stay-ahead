@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_08_105000) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_08_112000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -28,6 +28,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_08_105000) do
     t.integer "recurrence", default: 0, null: false
     t.date "end_date"
     t.date "due_date"
+    t.index ["due_date"], name: "index_commitments_on_due_date"
     t.index ["end_date"], name: "index_commitments_on_end_date"
     t.index ["user_id"], name: "index_commitments_on_user_id"
   end

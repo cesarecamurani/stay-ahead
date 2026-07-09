@@ -78,6 +78,7 @@ module Api
           :recurrence,
           :amount,
           :start_date,
+          :due_date,
           :duration_months,
           :interest_rate
         )

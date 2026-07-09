@@ -31,6 +31,10 @@ RSpec.describe CommitmentSerializer do
       )
     end
 
+    it "omits due_date for recurring commitments" do
+      expect(result).not_to have_key(:due_date)
+    end
+
     it "returns commitment attributes" do
       expect(result).to include(
         id: commitment.id,
@@ -64,6 +68,23 @@ RSpec.describe CommitmentSerializer do
 
       it "returns nil for duration_months" do
         expect(result[:duration_months]).to be_nil
+      end
+    end
+
+    context "when commitment is one-time" do
+      let(:commitment) do
+        build(
+          :commitment,
+          :one_time,
+          start_date: nil,
+          due_date: Date.new(2026, 6, 1),
+          duration_months: nil
+        )
+      end
+
+      it "returns due_date and omits start_date" do
+        expect(result[:due_date]).to eq(Date.new(2026, 6, 1))
+        expect(result).not_to have_key(:start_date)
       end
     end
   end

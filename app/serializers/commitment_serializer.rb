@@ -13,9 +13,19 @@ class CommitmentSerializer < BaseSerializer
       recurrence: object.recurrence,
       status: object.status,
       amount: money(object.amount),
-      start_date: object.start_date,
+      **date_fields,
       duration_months: object.duration_months,
       interest_rate: decimal(object.interest_rate)
     }
+  end
+
+  private
+
+  def date_fields
+    if object.one_time?
+      { due_date: object.due_date }
+    else
+      { start_date: object.start_date }
+    end
   end
 end

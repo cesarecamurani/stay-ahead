@@ -108,7 +108,9 @@ class SmokeTest
 
   def fetch_forecasts(from, to)
     res = request(:get, "/forecasts?from=#{from.iso8601}&to=#{to.iso8601}")
-    [res, json(res)[:forecasts]]
+    forecasts = json(res)[:forecasts]
+    forecasts = [] unless forecasts.is_a?(Array)
+    [res, forecasts]
   end
 
   def base_params

@@ -18,6 +18,7 @@ Rails.application.routes.draw do
 
       get "/summary",   to: "summary#show"
       get "/breakdown", to: "breakdown#show"
+      get "/forecasts", to: "forecasts#index"
     end
   end
 end

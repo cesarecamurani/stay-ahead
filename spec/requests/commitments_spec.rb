@@ -154,6 +154,94 @@ RSpec.describe "Api::V1::Commitments", type: :request do
       end
     end
 
+    context "when creating a one-time commitment" do
+      let(:one_time_params) do
+        {
+          name: "Insurance premium",
+          category: "obligation",
+          recurrence: "one_time",
+          amount: 120.00,
+          due_date: Date.current + 2.weeks
+        }
+      end
+
+      before { post "/api/v1/commitments", params: { commitment: one_time_params }, headers: auth_headers }
+
+      it "creates a one-time commitment" do
+        expect(response).to have_http_status(:created)
+        expect(Commitment.last).to be_one_time
+      end
+
+      it "sets scheduled status when due_date is in the future" do
+        expect(json_response[:status]).to eq("scheduled")
+      end
+
+      it "returns due_date in the response" do
+        expect(json_response[:due_date]).to eq((Date.current + 2.weeks).iso8601)
+      end
+
+      it "does not return start_date" do
+        expect(json_response[:start_date]).to be_nil
+      end
+    end
+
+    context "when one-time commitment due_date is today" do
+      let(:one_time_params) do
+        {
+          name: "Past due payment",
+          category: "debt",
+          recurrence: "one_time",
+          amount: 50.00,
+          due_date: Date.current
+        }
+      end
+
+      before { post "/api/v1/commitments", params: { commitment: one_time_params }, headers: auth_headers }
+
+      it "sets completed status" do
+        expect(json_response[:status]).to eq("completed")
+      end
+    end
+
+    context "when one-time commitment is missing due_date" do
+      before do
+        post "/api/v1/commitments",
+             params: {
+               commitment: {
+                 name: "Missing date",
+                 category: "debt",
+                 recurrence: "one_time",
+                 amount: 100
+               }
+             },
+             headers: auth_headers
+      end
+
+      it "returns unprocessable_entity status" do
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it "returns validation errors" do
+        expect(json_response[:errors]).to include("Due date can't be blank")
+      end
+    end
+
+    context "when recurring commitment includes due_date" do
+      before do
+        post "/api/v1/commitments",
+             params: { commitment: valid_params.merge(due_date: Date.current) },
+             headers: auth_headers
+      end
+
+      it "returns unprocessable_entity status" do
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it "returns validation errors" do
+        expect(json_response[:errors]).to include("Due date must be blank")
+      end
+    end
+
     context "when status is sent in params" do
       before do
         post "/api/v1/commitments",
@@ -291,6 +379,31 @@ RSpec.describe "Api::V1::Commitments", type: :request do
 
       it "does not change status" do
         expect(commitment.reload).to be_active
+      end
+    end
+
+    context "when updating due_date on a one-time commitment" do
+      let!(:commitment) do
+        create(
+          :commitment,
+          :one_time,
+          user:,
+          due_date: Date.current + 1.month
+        )
+      end
+
+      before do
+        patch "/api/v1/commitments/#{commitment.id}",
+              params: { commitment: { due_date: Date.current + 2.months } },
+              headers: auth_headers
+      end
+
+      it "updates due_date" do
+        expect(commitment.reload.due_date).to eq(Date.current + 2.months)
+      end
+
+      it "returns updated due_date" do
+        expect(json_response[:due_date]).to eq((Date.current + 2.months).iso8601)
       end
     end
 

@@ -27,7 +27,7 @@ RSpec.describe CommitmentSerializer do
     it "returns whitelisted fields" do
       expect(result.keys).to contain_exactly(
         :id, :name, :category, :recurrence, :status,
-        :amount, :start_date, :duration_months, :interest_rate
+        :amount, :start_date, :due_date, :duration_months, :interest_rate
       )
     end
 
@@ -64,6 +64,23 @@ RSpec.describe CommitmentSerializer do
 
       it "returns nil for duration_months" do
         expect(result[:duration_months]).to be_nil
+      end
+    end
+
+    context "when commitment is one-time" do
+      let(:commitment) do
+        build(
+          :commitment,
+          :one_time,
+          start_date: nil,
+          due_date: Date.new(2026, 6, 1),
+          duration_months: nil
+        )
+      end
+
+      it "returns due_date and nil start_date" do
+        expect(result[:due_date]).to eq(Date.new(2026, 6, 1))
+        expect(result[:start_date]).to be_nil
       end
     end
   end

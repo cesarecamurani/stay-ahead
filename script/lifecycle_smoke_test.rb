@@ -133,11 +133,28 @@ class SmokeTest
     res, data = create_commitment(start_date: Date.current + 7)
     record("start_date=future → scheduled", data[:status] == "scheduled" && res.code == "201", "status=#{data[:status]}")
 
+    res, data = create_commitment(
+      recurrence: "one_time",
+      due_date: Date.current + 14,
+      start_date: nil
+    )
+    record("one_time future due_date → scheduled", data[:status] == "scheduled" && res.code == "201", "status=#{data[:status]} due_date=#{data[:due_date]}")
+
+    res, data = create_commitment(
+      recurrence: "one_time",
+      due_date: Date.current,
+      start_date: nil
+    )
+    record("one_time due_date=today → completed", data[:status] == "completed" && res.code == "201", "status=#{data[:status]}")
+
     res, data = create_commitment(category: "aaa")
     record("invalid category → 422", res.code == "422", "code=#{res.code} errors=#{data[:errors]}")
 
     res, data = create_commitment(recurrence: "aaa")
     record("invalid recurrence → 422", res.code == "422", "code=#{res.code}")
+
+    res, data = create_commitment(recurrence: "one_time", due_date: nil, start_date: nil)
+    record("one_time missing due_date → 422", res.code == "422", "code=#{res.code} errors=#{data[:errors]}")
 
     create_commitment
     res2 = request(:post, "/commitments", body: { commitment: base_params.merge(status: "paused") })
@@ -337,6 +354,21 @@ class SmokeTest
            active_occurrences.any? &&
            active_occurrences.all? { |f| f[:amount] == "77.77" && f[:name] == "Forecast Active" },
            "count=#{active_occurrences.size}")
+
+    _, one_time = create_commitment(
+      name: "Forecast One-Time",
+      recurrence: "one_time",
+      due_date: Date.current + 10.days,
+      start_date: nil,
+      amount: 42.00
+    )
+    res, forecasts = fetch_forecasts(from, to)
+    one_time_occurrences = forecasts.select { |f| f[:commitment_id] == one_time[:id] }
+    record("forecasts: includes scheduled one-time commitment",
+           one_time_occurrences.size == 1 &&
+           one_time_occurrences.first[:amount] == "42.00" &&
+           one_time_occurrences.first[:date] == (Date.current + 10.days).iso8601,
+           "count=#{one_time_occurrences.size}")
 
     _, paused = create_commitment(name: "Forecast Paused", amount: 88.88)
     transition(paused[:id], :pause)

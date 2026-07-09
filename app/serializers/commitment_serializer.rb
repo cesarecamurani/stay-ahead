@@ -14,6 +14,7 @@ class CommitmentSerializer < BaseSerializer
       status: object.status,
       amount: money(object.amount),
       start_date: object.start_date,
+      due_date: object.due_date,
       duration_months: object.duration_months,
       interest_rate: decimal(object.interest_rate)
     }

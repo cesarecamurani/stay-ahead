@@ -29,9 +29,10 @@ class SmokeTest
     section("3. Resume") { test_resume }
     section("4. Cancel") { test_cancel }
     section("5-7. Financial calculations") { test_financials }
-    section("8. Validation") { test_validation }
-    section("9. Authorization") { test_authorization }
-    section("10. Edge cases") { test_edge_cases }
+    section("8. Forecasts") { test_forecasts }
+    section("9. Validation") { test_validation }
+    section("10. Authorization") { test_authorization }
+    section("11. Edge cases") { test_edge_cases }
 
     print_summary
   end
@@ -103,6 +104,13 @@ class SmokeTest
   def fetch_breakdown
     res = request(:get, "/breakdown")
     [res, json(res)[:breakdown]]
+  end
+
+  def fetch_forecasts(from, to)
+    res = request(:get, "/forecasts?from=#{from.iso8601}&to=#{to.iso8601}")
+    forecasts = json(res)[:forecasts]
+    forecasts = [] unless forecasts.is_a?(Array)
+    [res, forecasts]
   end
 
   def base_params
@@ -307,6 +315,55 @@ class SmokeTest
            summary_after_cancel[:monthly_commitments_amount] == "0.00")
 
     @token = original_token
+  end
+
+  def test_forecasts
+    from = Date.current
+    to = Date.current + 60.days
+
+    res, forecasts = fetch_forecasts(from, to)
+    record("forecasts: returns 200", res.code == "200")
+    record("forecasts: returns array", forecasts.is_a?(Array))
+
+    _, active = create_commitment(
+      name: "Forecast Active",
+      start_date: Date.current,
+      amount: 77.77,
+      category: "service"
+    )
+    res, forecasts = fetch_forecasts(from, to)
+    active_occurrences = forecasts.select { |f| f[:commitment_id] == active[:id] }
+    record("forecasts: includes active commitment",
+           active_occurrences.any? &&
+           active_occurrences.all? { |f| f[:amount] == "77.77" && f[:name] == "Forecast Active" },
+           "count=#{active_occurrences.size}")
+
+    _, paused = create_commitment(name: "Forecast Paused", amount: 88.88)
+    transition(paused[:id], :pause)
+    res, forecasts = fetch_forecasts(from, to)
+    paused_occurrences = forecasts.select { |f| f[:commitment_id] == paused[:id] }
+    record("forecasts: excludes paused", paused_occurrences.empty?)
+
+    if forecasts.any?
+      first = forecasts.first
+      record("forecasts: occurrence shape",
+             %i[commitment_id name category date amount].all? { |key| first.key?(key) })
+    end
+
+    dates = forecasts.map { |f| f[:date] }
+    record("forecasts: chronological order", dates == dates.sort)
+
+    res = request(:get, "/forecasts?to=#{to.iso8601}")
+    record("forecasts: missing from → 400", res.code == "400")
+
+    res = request(:get, "/forecasts?from=#{from.iso8601}")
+    record("forecasts: missing to → 400", res.code == "400")
+
+    res = request(:get, "/forecasts?from=not-a-date&to=#{to.iso8601}")
+    record("forecasts: invalid date → 400", res.code == "400")
+
+    res = request(:get, "/forecasts?from=#{from.iso8601}&to=#{to.iso8601}", token: "invalid")
+    record("forecasts: unauthorized → 401", res.code == "401")
   end
 
   def test_validation

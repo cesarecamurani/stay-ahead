@@ -277,7 +277,7 @@ Authorization: Bearer <jwt>
 | `POST` | `/api/v1/commitments/:id/resume` | Resume a paused commitment |
 | `POST` | `/api/v1/commitments/:id/cancel` | Cancel a commitment |
 
-Create and update accept `due_date` for one-time commitments (`recurrence: "one_time"`). Recurring commitments use `start_date` and must not include `due_date`.
+Create and update accept `due_date` for one-time commitments (`recurrence: "one_time"`). Recurring commitments use `start_date` and must not include `due_date`. API responses include only the applicable date field (`due_date` for one-time, `start_date` for recurring).
 
 **One-time example:**
 

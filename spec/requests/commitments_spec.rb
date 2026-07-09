@@ -155,13 +155,14 @@ RSpec.describe "Api::V1::Commitments", type: :request do
     end
 
     context "when creating a one-time commitment" do
+      let(:due_date) { Date.current + 2.weeks }
       let(:one_time_params) do
         {
           name: "Insurance premium",
           category: "obligation",
           recurrence: "one_time",
           amount: 120.00,
-          due_date: Date.current + 2.weeks
+          due_date:
         }
       end
 
@@ -177,11 +178,11 @@ RSpec.describe "Api::V1::Commitments", type: :request do
       end
 
       it "returns due_date in the response" do
-        expect(json_response[:due_date]).to eq((Date.current + 2.weeks).iso8601)
+        expect(json_response[:due_date]).to eq(due_date.iso8601)
       end
 
-      it "does not return start_date" do
-        expect(json_response[:start_date]).to be_nil
+      it "omits start_date from the response" do
+        expect(json_response).not_to have_key(:start_date)
       end
     end
 
@@ -383,6 +384,7 @@ RSpec.describe "Api::V1::Commitments", type: :request do
     end
 
     context "when updating due_date on a one-time commitment" do
+      let(:updated_due_date) { Date.current + 2.months }
       let!(:commitment) do
         create(
           :commitment,
@@ -394,16 +396,16 @@ RSpec.describe "Api::V1::Commitments", type: :request do
 
       before do
         patch "/api/v1/commitments/#{commitment.id}",
-              params: { commitment: { due_date: Date.current + 2.months } },
+              params: { commitment: { due_date: updated_due_date } },
               headers: auth_headers
       end
 
       it "updates due_date" do
-        expect(commitment.reload.due_date).to eq(Date.current + 2.months)
+        expect(commitment.reload.due_date).to eq(updated_due_date)
       end
 
       it "returns updated due_date" do
-        expect(json_response[:due_date]).to eq((Date.current + 2.months).iso8601)
+        expect(json_response[:due_date]).to eq(updated_due_date.iso8601)
       end
     end
 

@@ -27,8 +27,12 @@ RSpec.describe CommitmentSerializer do
     it "returns whitelisted fields" do
       expect(result.keys).to contain_exactly(
         :id, :name, :category, :recurrence, :status,
-        :amount, :start_date, :due_date, :duration_months, :interest_rate
+        :amount, :start_date, :duration_months, :interest_rate
       )
+    end
+
+    it "omits due_date for recurring commitments" do
+      expect(result).not_to have_key(:due_date)
     end
 
     it "returns commitment attributes" do
@@ -78,9 +82,9 @@ RSpec.describe CommitmentSerializer do
         )
       end
 
-      it "returns due_date and nil start_date" do
+      it "returns due_date and omits start_date" do
         expect(result[:due_date]).to eq(Date.new(2026, 6, 1))
-        expect(result[:start_date]).to be_nil
+        expect(result).not_to have_key(:start_date)
       end
     end
   end

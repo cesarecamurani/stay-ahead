@@ -43,7 +43,7 @@ RSpec.describe "Api::V1::Me", type: :request do
   end
 
   describe "PATCH /api/v1/me" do
-    let(:user) { create(:user, email:, password:, password_confirmation:) }
+    let(:user) { create(:user, email:, password:) }
     let(:monthly_income) { 6000.0 }
     let(:savings) { 15000.0 }
     let(:currency) { "GBP" }

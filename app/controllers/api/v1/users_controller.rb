@@ -12,6 +12,7 @@ module Api
           present_user(
             user,
             status: :created,
+            compact: true,
             message: "registered",
             token: JwtService.encode(user_id: user.id)
           )

@@ -3,6 +3,8 @@
 class User < ApplicationRecord
   has_secure_password
 
+  validates :password_confirmation, presence: true, on: :create
+
   has_many :commitments, dependent: :destroy
 
   validates :email, presence: true, uniqueness: true

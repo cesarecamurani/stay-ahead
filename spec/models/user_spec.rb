@@ -9,15 +9,15 @@ RSpec.describe User, type: :model do
 
   describe "validations" do
     it { is_expected.to validate_presence_of(:email) }
-    it { is_expected.to validate_uniqueness_of(:email) }
+    it { is_expected.to validate_uniqueness_of(:email).case_insensitive }
     it { is_expected.to validate_numericality_of(:monthly_income).is_greater_than_or_equal_to(0).allow_nil }
     it { is_expected.to validate_numericality_of(:savings).is_greater_than_or_equal_to(0).allow_nil }
 
     context "when creating a user" do
       subject(:user) { build(:user, password:, password_confirmation:) }
 
-      let(:password) { "password123" }
-      let(:password_confirmation) { "password123" }
+      let(:password) { "Password123!" }
+      let(:password_confirmation) { "Password123!" }
 
       context "when password is missing" do
         let(:password) { nil }
@@ -45,11 +45,61 @@ RSpec.describe User, type: :model do
       end
 
       context "when password confirmation does not match" do
-        let(:password_confirmation) { "different" }
+        let(:password_confirmation) { "Different123!" }
 
         it "is invalid" do
           expect(user).not_to be_valid
           expect(user.errors[:password_confirmation]).to include("doesn't match Password")
+        end
+      end
+
+      context "when password is too short" do
+        let(:password) { "Short1!" }
+        let(:password_confirmation) { password }
+
+        it "is invalid" do
+          expect(user).not_to be_valid
+          expect(user.errors[:password]).to include("must be at least 12 characters")
+        end
+      end
+
+      context "when password has no uppercase letter" do
+        let(:password) { "password123!" }
+        let(:password_confirmation) { password }
+
+        it "is invalid" do
+          expect(user).not_to be_valid
+          expect(user.errors[:password]).to include("must contain at least one uppercase letter")
+        end
+      end
+
+      context "when password has no lowercase letter" do
+        let(:password) { "PASSWORD123!" }
+        let(:password_confirmation) { password }
+
+        it "is invalid" do
+          expect(user).not_to be_valid
+          expect(user.errors[:password]).to include("must contain at least one lowercase letter")
+        end
+      end
+
+      context "when password has no number" do
+        let(:password) { "Password!!!!" }
+        let(:password_confirmation) { password }
+
+        it "is invalid" do
+          expect(user).not_to be_valid
+          expect(user.errors[:password]).to include("must contain at least one number")
+        end
+      end
+
+      context "when password has no special character" do
+        let(:password) { "Password1234" }
+        let(:password_confirmation) { password }
+
+        it "is invalid" do
+          expect(user).not_to be_valid
+          expect(user.errors[:password]).to include("must contain at least one special character")
         end
       end
     end

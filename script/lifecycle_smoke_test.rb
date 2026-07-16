@@ -254,7 +254,8 @@ class SmokeTest
   def test_financials
     fin_user = User.create!(
       email: "smoke-fin-#{SecureRandom.hex(4)}@example.com",
-      password: "password",
+      password: "Password123!",
+      password_confirmation: "Password123!",
       monthly_income: 4000,
       savings: 3050
     )
@@ -413,7 +414,11 @@ class SmokeTest
   end
 
   def test_authorization
-    other = User.create!(email: "smoke-other-#{SecureRandom.hex(4)}@example.com", password: "password")
+    other = User.create!(
+      email: "smoke-other-#{SecureRandom.hex(4)}@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!"
+    )
     other_token = JwtService.encode(user_id: other.id)
     _, mine = create_commitment
     res = request(:post, "/commitments/#{mine[:id]}/pause", token: other_token)

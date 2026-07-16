@@ -3,8 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "Authentication", type: :request do
-  let(:user) { create(:user, password: "password123") }
-  let(:password) { "password123" }
+  let(:user) { create(:user, password: "Password123!") }
+  let(:password) { "Password123!" }
   let(:json_response) { JSON.parse(response.body) }
 
   describe "POST /api/v1/login" do
@@ -44,7 +44,7 @@ RSpec.describe "Authentication", type: :request do
 
     context "with non-existent email" do
       subject(:send_request) do
-        post "/api/v1/login", params: { email: "nonexistent@example.com", password: "password123" }
+        post "/api/v1/login", params: { email: "nonexistent@example.com", password: "Password123!" }
       end
 
       it "returns an unauthorized response" do

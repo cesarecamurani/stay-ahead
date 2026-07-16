@@ -112,7 +112,7 @@ RSpec.describe "Api::V1::Users", type: :request do
         {
           email:,
           password:,
-          password_confirmation: "different_password"
+          password_confirmation: "Different123!"
         }
       end
 

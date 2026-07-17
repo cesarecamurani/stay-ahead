@@ -40,6 +40,7 @@ module Api
       def user_params
         params.require(:user).permit(
           :email,
+          :username,
           :password,
           :password_confirmation,
           :monthly_income,
@@ -50,6 +51,7 @@ module Api
 
       def profile_params
         params.require(:user).permit(
+          :username,
           :monthly_income,
           :savings,
           :currency

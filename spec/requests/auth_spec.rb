@@ -25,6 +25,10 @@ RSpec.describe "Authentication", type: :request do
         expect(json_response["user"]["email"]).to eq(user.email)
       end
 
+      it "returns the correct user username" do
+        expect(json_response["user"]["username"]).to eq(user.username)
+      end
+
       it "returns a JWT token" do
         expect(json_response["token"]).not_to be_nil
       end

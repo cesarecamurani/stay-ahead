@@ -16,7 +16,7 @@ RSpec.describe UserSerializer do
   describe "#serialize" do
     context "with full profile" do
       it "returns id and email" do
-        expect(result).to include(id: user.id, email: user.email)
+        expect(result).to include(id: user.id, email: user.email, username: user.username)
       end
 
       it "formats monthly_income as money" do
@@ -51,8 +51,8 @@ RSpec.describe UserSerializer do
     context "with compact mode" do
       let(:compact) { true }
 
-      it "returns only id and email" do
-        expect(result).to eq(id: user.id, email: user.email)
+      it "returns only id, email, and username" do
+        expect(result).to eq(id: user.id, email: user.email, username: user.username)
       end
 
       it "does not include profile fields" do

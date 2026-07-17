@@ -10,6 +10,14 @@ RSpec.describe User, type: :model do
   describe "validations" do
     it { is_expected.to validate_presence_of(:email) }
     it { is_expected.to validate_uniqueness_of(:email).case_insensitive }
+    it { is_expected.to validate_presence_of(:username) }
+    it { is_expected.to validate_uniqueness_of(:username).case_insensitive }
+    it { is_expected.to validate_length_of(:username).is_at_least(3).is_at_most(30) }
+    it { is_expected.to allow_value("jane_doe").for(:username) }
+    it { is_expected.to allow_value("user123").for(:username) }
+    it { is_expected.not_to allow_value("ab").for(:username) }
+    it { is_expected.not_to allow_value("user@name").for(:username) }
+    it { is_expected.not_to allow_value("User Name").for(:username) }
     it { is_expected.to validate_numericality_of(:monthly_income).is_greater_than_or_equal_to(0).allow_nil }
     it { is_expected.to validate_numericality_of(:savings).is_greater_than_or_equal_to(0).allow_nil }
 

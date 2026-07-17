@@ -254,6 +254,7 @@ class SmokeTest
   def test_financials
     fin_user = User.create!(
       email: "smoke-fin-#{SecureRandom.hex(4)}@example.com",
+      username: "smoke_fin_#{SecureRandom.hex(4)}",
       password: "Password123!",
       password_confirmation: "Password123!",
       monthly_income: 4000,
@@ -416,6 +417,7 @@ class SmokeTest
   def test_authorization
     other = User.create!(
       email: "smoke-other-#{SecureRandom.hex(4)}@example.com",
+      username: "smoke_other_#{SecureRandom.hex(4)}",
       password: "Password123!",
       password_confirmation: "Password123!"
     )

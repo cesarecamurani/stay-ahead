@@ -20,6 +20,10 @@ RSpec.describe "Api::V1::Me", type: :request do
         expect(json_response[:user][:email]).to eq(user.email)
       end
 
+      it "returns user username" do
+        expect(json_response[:user][:username]).to eq(user.username)
+      end
+
       it "returns user monthly income" do
         expect(json_response[:user][:monthly_income]).to eq("5000.00")
       end
@@ -43,14 +47,16 @@ RSpec.describe "Api::V1::Me", type: :request do
   end
 
   describe "PATCH /api/v1/me" do
-    let(:user) { create(:user, email:, password:) }
+    let(:user) { create(:user, email:, password:, username:) }
     let(:monthly_income) { 6000.0 }
     let(:savings) { 15000.0 }
     let(:currency) { "GBP" }
+    let(:new_username) { "updated_user" }
 
     context "with valid parameters" do
       let(:valid_attributes) do
         {
+          username: new_username,
           monthly_income:,
           savings:,
           currency:
@@ -71,6 +77,10 @@ RSpec.describe "Api::V1::Me", type: :request do
         expect(user.monthly_income).to eq(monthly_income)
       end
 
+      it "updates the user's profile username" do
+        expect(user.username).to eq(new_username)
+      end
+
       it "updates the user's profile savings" do
         expect(user.savings).to eq(savings)
       end
@@ -81,6 +91,10 @@ RSpec.describe "Api::V1::Me", type: :request do
 
       it "returns updated user monthly_income" do
         expect(json_response[:user][:monthly_income]).to eq("6000.00")
+      end
+
+      it "returns updated user username" do
+        expect(json_response[:user][:username]).to eq(new_username)
       end
 
       it "returns updated user savings" do
@@ -96,9 +110,11 @@ RSpec.describe "Api::V1::Me", type: :request do
       let(:monthly_income) { -5000.0 }
       let(:savings) { -10000.0 }
       let(:currency) { "XXX" }
+      let(:new_username) { "ab" }
 
       let(:invalid_attributes) do
         {
+          username: new_username,
           monthly_income:,
           savings:,
           currency:
@@ -119,6 +135,7 @@ RSpec.describe "Api::V1::Me", type: :request do
       it "returns the appropriate error messages" do
         send_request
         expect(json_response[:errors]).to include(
+          "Username is too short (minimum is 3 characters)",
           "Monthly income must be greater than or equal to 0",
           "Savings must be greater than or equal to 0",
           "Currency XXX is not a valid currency"

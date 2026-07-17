@@ -10,6 +10,7 @@ RSpec.describe "Api::V1::Users", type: :request do
       let(:valid_attributes) do
         {
           email:,
+          username:,
           password:,
           password_confirmation:,
           monthly_income:,
@@ -39,6 +40,10 @@ RSpec.describe "Api::V1::Users", type: :request do
           expect(json_response[:user][:email]).to eq(email)
         end
 
+        it "returns user username" do
+          expect(json_response[:user][:username]).to eq(username)
+        end
+
         it "returns user id" do
           expect(json_response[:user][:id]).to be_present
         end
@@ -54,7 +59,7 @@ RSpec.describe "Api::V1::Users", type: :request do
     end
 
     context "with missing email" do
-      let(:invalid_attributes) { { password:, password_confirmation: } }
+      let(:invalid_attributes) { { username:, password:, password_confirmation: } }
 
       before { post "/api/v1/users", params: { user: invalid_attributes } }
 
@@ -72,7 +77,7 @@ RSpec.describe "Api::V1::Users", type: :request do
     end
 
     context "with missing password" do
-      let(:invalid_attributes) { { email:, password_confirmation: } }
+      let(:invalid_attributes) { { email:, username:, password_confirmation: } }
 
       before { post "/api/v1/users", params: { user: invalid_attributes } }
 
@@ -90,7 +95,7 @@ RSpec.describe "Api::V1::Users", type: :request do
     end
 
     context "with missing password confirmation" do
-      let(:invalid_attributes) { { email:, password: } }
+      let(:invalid_attributes) { { email:, username:, password: } }
 
       before { post "/api/v1/users", params: { user: invalid_attributes } }
 
@@ -111,6 +116,7 @@ RSpec.describe "Api::V1::Users", type: :request do
       let(:invalid_attributes) do
         {
           email:,
+          username:,
           password:,
           password_confirmation: "Different123!"
         }
@@ -128,6 +134,52 @@ RSpec.describe "Api::V1::Users", type: :request do
 
       it "returns error messages" do
         expect(json_response[:errors]).to include("Password confirmation doesn't match Password")
+      end
+    end
+
+    context "with missing username" do
+      let(:invalid_attributes) { { email:, password:, password_confirmation: } }
+
+      before { post "/api/v1/users", params: { user: invalid_attributes } }
+
+      it "does not create a user" do
+        expect(User.count).to eq(0)
+      end
+
+      it "returns unprocessable_entity status" do
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it "returns error messages" do
+        expect(json_response[:errors]).to include("Username can't be blank")
+      end
+    end
+
+    context "with duplicate username" do
+      let(:invalid_attributes) do
+        {
+          email: "other@example.com",
+          username:,
+          password:,
+          password_confirmation:
+        }
+      end
+
+      before do
+        create(:user, username:)
+        post "/api/v1/users", params: { user: invalid_attributes }
+      end
+
+      it "does not create a user" do
+        expect(User.count).to eq(1)
+      end
+
+      it "returns unprocessable_entity status" do
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it "returns error messages" do
+        expect(json_response[:errors]).to include("Username has already been taken")
       end
     end
   end

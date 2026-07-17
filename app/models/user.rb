@@ -6,8 +6,14 @@ class User < ApplicationRecord
   has_many :commitments, dependent: :destroy
 
   before_validation :normalize_email
+  before_validation :normalize_username
 
   validates :email, presence: true, uniqueness: true
+  validates :username,
+            presence: true,
+            uniqueness: true,
+            format: { with: /\A[a-z0-9_]+\z/ },
+            length: { in: 3..30 }
   validates :password, password_complexity: true
   validates :password_confirmation, presence: true, on: :create
 
@@ -25,6 +31,10 @@ class User < ApplicationRecord
 
   def normalize_email
     self.email = email.strip.downcase if email.present?
+  end
+
+  def normalize_username
+    self.username = username.strip.downcase if username.present?
   end
 
   def valid_currency?

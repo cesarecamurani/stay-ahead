@@ -8,11 +8,12 @@ class UserSerializer < BaseSerializer
   end
 
   def serialize
-    return { id: object.id, email: object.email } if @compact
+    return { id: object.id, email: object.email, username: object.username } if @compact
 
     {
       id: object.id,
       email: object.email,
+      username: object.username,
       monthly_income: money(object.monthly_income),
       savings: money(object.savings),
       currency: object.currency

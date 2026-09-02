@@ -15,6 +15,7 @@ RSpec.describe "Api::V1::Users", type: :request do
           password_confirmation:,
           monthly_income:,
           savings:,
+          protected_savings:,
           currency:
         }
       end
@@ -23,6 +24,12 @@ RSpec.describe "Api::V1::Users", type: :request do
 
       it "creates a user" do
         expect { send_request }.to change(User, :count).by(1)
+      end
+
+      it "stores the user's protected savings preference" do
+        send_request
+
+        expect(User.order(:created_at).last.protected_savings).to eq(BigDecimal("3000"))
       end
 
       context "when the request is sent" do

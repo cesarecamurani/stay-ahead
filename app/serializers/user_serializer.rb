@@ -16,6 +16,7 @@ class UserSerializer < BaseSerializer
       username: object.username,
       monthly_income: money(object.monthly_income),
       savings: money(object.savings),
+      protected_savings: money(object.protected_savings),
       currency: object.currency
     }
   end

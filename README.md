@@ -117,6 +117,8 @@ In addition to forward-looking forecasts, the API exposes **current-state** fina
 
 These endpoints use the `Calculator::MonthlyAmount` service to normalise weekly, monthly, quarterly, and yearly amounts to a monthly equivalent. They reflect the present snapshot of active commitments; they do not project balances over time.
 
+Creating a savings commitment immediately adds its amount to the user's current savings balance. No separate contribution history or scheduled savings-processing mechanism is maintained at this stage.
+
 ---
 
 ## 3. Commitment Lifecycle
@@ -382,7 +384,7 @@ The forecast API exposes projected payment events only. It does not perform bala
 
 ### User
 
-A user owns financial commitments and holds optional profile fields (`monthly_income`, `savings`, `currency`) used by financial snapshot endpoints. Authentication uses `has_secure_password` with a bcrypt digest.
+A user owns financial commitments and holds optional profile fields (`monthly_income`, `savings`, `protected_savings`, `currency`) used by financial snapshot and affordability features. `protected_savings` is the minimum balance the user wants future assessments to preserve; `nil` means no preference has been recorded, while zero is an explicit preference. Authentication uses `has_secure_password` with a bcrypt digest.
 
 ### Commitment
 
@@ -390,7 +392,7 @@ The central domain entity. A commitment represents a financial obligation with:
 
 | Concept | Business meaning |
 |---------|------------------|
-| `category` | What kind of obligation (obligation, debt, service, investment) |
+| `category` | What kind of commitment (obligation, debt, service, investment, savings) |
 | `recurrence` | How often the payment occurs (one_time through yearly) |
 | `status` | Where the commitment is in its lifecycle |
 | `amount` | Payment amount per occurrence |
@@ -506,6 +508,7 @@ Coverage reports are generated via SimpleCov in the `coverage/` directory.
 - Forecast generation (`ForecastGenerator`)
 - Forecast API (`GET /api/v1/forecasts`)
 - Financial snapshot endpoints (summary and breakdown)
+- Protected savings preference and savings commitments
 
 ### Next
 

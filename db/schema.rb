@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_17_073011) do
+ActiveRecord::Schema[8.0].define(version: 2026_09_02_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -163,6 +163,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_17_073011) do
     t.datetime "updated_at", null: false
     t.string "currency", default: "EUR", null: false
     t.string "username", null: false
+    t.decimal "protected_savings", precision: 10, scale: 2
     t.index ["username"], name: "index_users_on_username", unique: true
   end
 

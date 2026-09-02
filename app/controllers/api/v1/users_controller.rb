@@ -45,6 +45,7 @@ module Api
           :password_confirmation,
           :monthly_income,
           :savings,
+          :protected_savings,
           :currency
         )
       end
@@ -54,6 +55,7 @@ module Api
           :username,
           :monthly_income,
           :savings,
+          :protected_savings,
           :currency
         )
       end

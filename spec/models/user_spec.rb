@@ -20,6 +20,7 @@ RSpec.describe User, type: :model do
     it { is_expected.not_to allow_value("User Name").for(:username) }
     it { is_expected.to validate_numericality_of(:monthly_income).is_greater_than_or_equal_to(0).allow_nil }
     it { is_expected.to validate_numericality_of(:savings).is_greater_than_or_equal_to(0).allow_nil }
+    it { is_expected.to validate_numericality_of(:protected_savings).is_greater_than_or_equal_to(0).allow_nil }
 
     context "when creating a user" do
       subject(:user) { build(:user, password:, password_confirmation:) }

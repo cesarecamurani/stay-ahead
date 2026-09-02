@@ -25,6 +25,10 @@ class User < ApplicationRecord
             numericality: { greater_than_or_equal_to: 0 },
             allow_nil: true
 
+  validates :protected_savings,
+            numericality: { greater_than_or_equal_to: 0 },
+            allow_nil: true
+
   validate :valid_currency?
 
   private

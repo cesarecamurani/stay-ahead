@@ -49,7 +49,8 @@ RSpec.describe "Api::V1::Breakdown", type: :request do
           obligation: "800.00",
           debt: "100.00",
           service: "22.00",
-          investment: "250.00"
+          investment: "250.00",
+          savings: "0.00"
         }
       }
     end
@@ -78,7 +79,8 @@ RSpec.describe "Api::V1::Breakdown", type: :request do
             obligation: "0.00",
             debt: "0.00",
             service: "0.00",
-            investment: "0.00"
+            investment: "0.00",
+            savings: "0.00"
           }
         }
       end

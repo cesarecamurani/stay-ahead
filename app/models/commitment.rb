@@ -7,7 +7,8 @@ class Commitment < ApplicationRecord
     obligation: 0,   # rent, mortgage, essential fixed costs
     debt: 1,         # loans, installments, credit repayments
     service: 2,      # subscriptions, insurance
-    investment: 3    # pension, funds, investing flows
+    investment: 3,   # pension, funds, investing flows
+    savings: 4       # planned transfers into accessible savings
   }, validate: true
 
   enum :status, {
@@ -28,6 +29,7 @@ class Commitment < ApplicationRecord
 
   before_validation :set_initial_status, on: :create
   before_validation :calculate_end_date, on: :create
+  after_create :add_amount_to_savings, if: :savings?
 
   scope :ready_to_activate, -> {
     scheduled
@@ -110,6 +112,10 @@ class Commitment < ApplicationRecord
   end
 
   private
+
+  def add_amount_to_savings
+    user.increment!(:savings, amount)
+  end
 
   def set_initial_status
     return if activation_date.blank?

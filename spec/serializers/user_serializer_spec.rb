@@ -5,9 +5,10 @@ require "rails_helper"
 RSpec.describe UserSerializer do
   subject(:serializer) { described_class.new(user, compact:) }
 
-  let(:user) { build(:user, monthly_income:, savings:, currency:) }
+  let(:user) { build(:user, monthly_income:, savings:, protected_savings:, currency:) }
   let(:monthly_income) { BigDecimal("5000.00") }
   let(:savings) { BigDecimal("15000.00") }
+  let(:protected_savings) { BigDecimal("5000.00") }
   let(:currency) { "EUR" }
   let(:compact) { false }
 
@@ -25,6 +26,10 @@ RSpec.describe UserSerializer do
 
       it "formats savings as money" do
         expect(result[:savings]).to eq("15000.00")
+      end
+
+      it "formats protected savings as money" do
+        expect(result[:protected_savings]).to eq("5000.00")
       end
 
       it "returns currency" do
@@ -46,6 +51,14 @@ RSpec.describe UserSerializer do
           expect(result[:savings]).to be_nil
         end
       end
+
+      context "when protected savings is nil" do
+        let(:protected_savings) { nil }
+
+        it "returns nil for protected savings" do
+          expect(result[:protected_savings]).to be_nil
+        end
+      end
     end
 
     context "with compact mode" do
@@ -58,6 +71,7 @@ RSpec.describe UserSerializer do
       it "does not include profile fields" do
         expect(result).not_to have_key(:monthly_income)
         expect(result).not_to have_key(:savings)
+        expect(result).not_to have_key(:protected_savings)
         expect(result).not_to have_key(:currency)
       end
     end

@@ -32,6 +32,12 @@ RSpec.describe Commitment, type: :model do
       expect(commitment.errors[:category]).to include("is not included in the list")
     end
 
+    it "allows savings commitments" do
+      commitment.category = :savings
+
+      expect(commitment).to be_valid
+    end
+
     it "rejects an unknown recurrence" do
       commitment = build(:commitment, recurrence: "aaa")
 
@@ -95,6 +101,34 @@ RSpec.describe Commitment, type: :model do
 
         expect(commitment).to be_scheduled
       end
+    end
+  end
+
+  describe "savings balance" do
+    let(:user) { create(:user, savings: 1_000) }
+
+    it "adds a savings commitment amount to the user's savings" do
+      expect {
+        create(:commitment, user:, category: :savings, amount: 250)
+      }.to change { user.reload.savings }
+        .from(BigDecimal("1000"))
+        .to(BigDecimal("1250"))
+    end
+
+    it "starts from zero when the user has no savings value" do
+      user.update!(savings: nil)
+
+      expect {
+        create(:commitment, user:, category: :savings, amount: 250)
+      }.to change { user.reload.savings }
+        .from(nil)
+        .to(BigDecimal("250"))
+    end
+
+    it "does not change savings for other commitment categories" do
+      expect {
+        create(:commitment, user:, category: :service, amount: 250)
+      }.not_to change { user.reload.savings }
     end
   end
 

@@ -8,5 +8,6 @@ RSpec.shared_context "shared config" do
   let(:password_confirmation) { "Password123!" }
   let(:monthly_income) { 5000.0 }
   let(:savings) { 10000.0 }
+  let(:protected_savings) { 3000.0 }
   let(:currency) { "EUR" }
 end

@@ -186,6 +186,22 @@ RSpec.describe "Api::V1::Commitments", type: :request do
       end
     end
 
+    context "when creating a savings commitment" do
+      let(:valid_params) { super().merge(category: "savings") }
+
+      before { post "/api/v1/commitments", params: { commitment: valid_params }, headers: auth_headers }
+
+      it "creates a savings commitment" do
+        expect(response).to have_http_status(:created)
+        expect(json_response[:category]).to eq("savings")
+        expect(Commitment.order(:created_at).last).to be_savings
+      end
+
+      it "adds the commitment amount to the user's savings" do
+        expect(user.reload.savings).to eq(BigDecimal("1300.25"))
+      end
+    end
+
     context "when one-time commitment due_date is today" do
       let(:one_time_params) do
         {

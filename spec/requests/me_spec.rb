@@ -7,7 +7,7 @@ RSpec.describe "Api::V1::Me", type: :request do
   include_context "shared config"
 
   describe "GET /api/v1/me" do
-    let(:user) { create(:user, monthly_income:, savings:) }
+    let(:user) { create(:user, monthly_income:, savings:, protected_savings:) }
 
     context "when authenticated" do
       before { get "/api/v1/me", headers: auth_headers }
@@ -32,6 +32,10 @@ RSpec.describe "Api::V1::Me", type: :request do
         expect(json_response[:user][:savings]).to eq("10000.00")
       end
 
+      it "returns user protected savings" do
+        expect(json_response[:user][:protected_savings]).to eq("3000.00")
+      end
+
       it "returns success status" do
         expect(response).to have_http_status(:success)
       end
@@ -50,6 +54,7 @@ RSpec.describe "Api::V1::Me", type: :request do
     let(:user) { create(:user, email:, password:, username:) }
     let(:monthly_income) { 6000.0 }
     let(:savings) { 15000.0 }
+    let(:protected_savings) { 5000.0 }
     let(:currency) { "GBP" }
     let(:new_username) { "updated_user" }
 
@@ -59,6 +64,7 @@ RSpec.describe "Api::V1::Me", type: :request do
           username: new_username,
           monthly_income:,
           savings:,
+          protected_savings:,
           currency:
         }
       end
@@ -85,6 +91,10 @@ RSpec.describe "Api::V1::Me", type: :request do
         expect(user.savings).to eq(savings)
       end
 
+      it "updates the user's protected savings" do
+        expect(user.protected_savings).to eq(protected_savings)
+      end
+
       it "updates the user's profile currency" do
         expect(user.currency).to eq(currency)
       end
@@ -101,6 +111,10 @@ RSpec.describe "Api::V1::Me", type: :request do
         expect(json_response[:user][:savings]).to eq("15000.00")
       end
 
+      it "returns updated protected savings" do
+        expect(json_response[:user][:protected_savings]).to eq("5000.00")
+      end
+
       it "returns updated user currency" do
         expect(json_response[:user][:currency]).to eq(currency)
       end
@@ -109,6 +123,7 @@ RSpec.describe "Api::V1::Me", type: :request do
     context "with invalid parameters" do
       let(:monthly_income) { -5000.0 }
       let(:savings) { -10000.0 }
+      let(:protected_savings) { -3000.0 }
       let(:currency) { "XXX" }
       let(:new_username) { "ab" }
 
@@ -117,6 +132,7 @@ RSpec.describe "Api::V1::Me", type: :request do
           username: new_username,
           monthly_income:,
           savings:,
+          protected_savings:,
           currency:
         }
       end
@@ -138,6 +154,7 @@ RSpec.describe "Api::V1::Me", type: :request do
           "Username is too short (minimum is 3 characters)",
           "Monthly income must be greater than or equal to 0",
           "Savings must be greater than or equal to 0",
+          "Protected savings must be greater than or equal to 0",
           "Currency XXX is not a valid currency"
         )
       end

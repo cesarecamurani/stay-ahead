@@ -302,6 +302,7 @@ POST /api/v1/commitments
 |--------|------|-------------|
 | `GET` | `/api/v1/summary` | Monthly income, savings, commitments total, cash flow, runway |
 | `GET` | `/api/v1/breakdown` | Active commitment totals by category |
+| `POST` | `/api/v1/commitments/assessment` | Assess a proposed commitment without creating it |
 
 ### Forecast endpoint
 

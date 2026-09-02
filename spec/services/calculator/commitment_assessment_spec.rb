@@ -124,11 +124,13 @@ RSpec.describe Calculator::CommitmentAssessment do
 
     context "with a one-time commitment" do
       let(:due_date) { Date.current + 1.month }
+      let(:category) { :obligation }
       let(:candidate) do
         build(
           :commitment,
           :one_time,
           user:,
+          category:,
           amount:,
           due_date:
         ).tap(&:valid?)
@@ -157,6 +159,19 @@ RSpec.describe Calculator::CommitmentAssessment do
             affordable: false,
             overexposed: true,
             remaining_spendable_savings: BigDecimal("-1000")
+          )
+        end
+      end
+
+      context "when it adds to savings" do
+        let(:amount) { 250 }
+        let(:category) { :savings }
+
+        it "is affordable and adds the amount to spendable savings" do
+          expect(assessment).to include(
+            affordable: true,
+            overexposed: false,
+            remaining_spendable_savings: BigDecimal("7250")
           )
         end
       end

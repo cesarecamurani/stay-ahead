@@ -25,6 +25,21 @@ RSpec.describe Calculator::Summary do
     it "returns the user's financial summary" do
       expect(summary.call).to eq(call_result)
     end
+
+    context "when an active savings commitment exists" do
+      before do
+        create(:commitment, user:, category: :savings, recurrence: :monthly, amount: 250)
+      end
+
+      it "includes it in cash flow but excludes it from the savings runway expenses" do
+        expect(summary.call).to include(
+          savings: BigDecimal("10250"),
+          monthly_commitments_amount: BigDecimal("260"),
+          available_cash_flow: BigDecimal("4740"),
+          savings_runway_months: BigDecimal("1025")
+        )
+      end
+    end
   end
 
   describe "#monthly_commitments_amount" do

@@ -30,7 +30,7 @@ module Calculator
     end
 
     def one_time_assessment
-      remaining_savings = spendable_savings - commitment.amount
+      remaining_savings = commitment.savings? ? spendable_savings_after_contribution : spendable_savings - commitment.amount
       affordable = remaining_savings >= 0
 
       {
@@ -76,6 +76,10 @@ module Calculator
 
     def spendable_savings
       [user.savings - user.protected_savings, BigDecimal("0")].max
+    end
+
+    def spendable_savings_after_contribution
+      [user.savings + commitment.amount - user.protected_savings, BigDecimal("0")].max
     end
   end
 end

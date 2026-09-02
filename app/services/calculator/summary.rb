@@ -10,7 +10,7 @@ module Calculator
         savings: user.savings,
         monthly_commitments_amount: commitments_amount,
         available_cash_flow: available_cash_flow(commitments_amount),
-        savings_runway_months: savings_runway_months(commitments_amount)
+        savings_runway_months: savings_runway_months(monthly_runway_commitments_amount)
       }
     end
 
@@ -18,6 +18,12 @@ module Calculator
 
     def monthly_commitments_amount
       active_commitments.sum do |commitment|
+        Calculator::MonthlyAmount.call(commitment)
+      end
+    end
+
+    def monthly_runway_commitments_amount
+      active_commitments.reject(&:savings?).sum do |commitment|
         Calculator::MonthlyAmount.call(commitment)
       end
     end

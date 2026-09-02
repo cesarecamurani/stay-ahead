@@ -25,6 +25,28 @@ module Api
         end
       end
 
+      def assessment
+        candidate = current_user.commitments.build(commitment_params)
+
+        unless candidate.valid?
+          render json: { errors: candidate.errors.full_messages }, status: :unprocessable_entity
+          return
+        end
+
+        missing_fields = missing_assessment_profile_fields
+
+        if missing_fields.any?
+          render json: {
+            errors: missing_fields.map { |field| "#{field.to_s.humanize} must be set" }
+          }, status: :unprocessable_entity
+          return
+        end
+
+        result = Calculator::CommitmentAssessment.new(current_user, candidate).call
+
+        present_json(result, serializer: CommitmentAssessmentSerializer)
+      end
+
       def update
         if commitment.update(commitment_params)
           present_json(commitment, serializer: CommitmentSerializer)
@@ -82,6 +104,12 @@ module Api
           :duration_months,
           :interest_rate
         )
+      end
+
+      def missing_assessment_profile_fields
+        %i[monthly_income savings protected_savings].select do |field|
+          current_user.public_send(field).nil?
+        end
       end
     end
   end

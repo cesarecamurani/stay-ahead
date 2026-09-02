@@ -3,6 +3,10 @@ Rails.application.routes.draw do
     namespace :v1 do
       resources :users, only: %i[create]
       resources :commitments, only: %i[index create show update] do
+        collection do
+          post :assessment
+        end
+
         member do
           post :pause
           post :cancel

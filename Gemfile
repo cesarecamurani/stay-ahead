@@ -4,7 +4,7 @@ gem "bcrypt", "~> 3.1.7"
 gem "bootsnap", require: false
 gem "jwt"
 gem "money"
-gem "pg", "~> 1.1"
+gem "pg", "~> 1.7"
 gem "puma", ">= 5.0"
 gem "rails", "~> 8.0.0"
 gem "solid_queue", "~> 1.7"
